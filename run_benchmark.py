@@ -21,26 +21,31 @@ import threading
 import textwrap
 import numpy as np
 import pandas as pd
-from scipy.stats import kendalltau
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity as cos_sim
-
 from langchain_core.documents import Document
 
+from core.registry import VectorStoreRegistry
+from core.metrics import (
+    is_relevant, recall_at_k, precision_at_k, score_stats, 
+    kendall_tau, jaccard_similarity, token_overlap_pct, 
+    tfidf_cosine_similarity, score_scale_similarity, 
+    rank_position_similarity, compute_similarity_report
+)
+from reporting.tee import Tee, snippet, sep, header, section
+
+import stores.baseline
+import stores.turbovec_store
+import stores.faiss_store
+import stores.qdrant_store
+import stores.usearch_store
+
+
 # ── STATIC CONFIG
-CSV_PATH = "/content/train.csv"
+CSV_PATH = None  # Set via --dataset CLI arg; no hardcoded default
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 BIT_WIDTH = 3
 TOP_K = 5
 N_TIMING_REPEATS = 5
 
-STORE_DISPLAY = {
-    "baseline": "Baseline (InMem)",
-    "turbovec": f"TurboVec ({BIT_WIDTH}bit)",
-    "faiss": "FAISS (FlatL2)",
-    "qdrant": "Qdrant (in-mem)",
-    "usearch": "USearch (HNSW)",
-}
 
 TEST_QUERIES = [
     (
@@ -251,161 +256,6 @@ def quantized_bytes_per_vector(dim: int, bit_width: int) -> int:
     return (dim * bit_width + 7) // 8
 
 
-def is_relevant(doc: Document, gold_keywords: list[str]) -> bool:
-    if not gold_keywords:
-        return False
-    combined = (doc.page_content + " " + str(doc.metadata)).lower()
-    return any(kw.lower() in combined for kw in gold_keywords)
-
-
-def recall_at_k(results, gold_keywords, k):
-    hits = sum(1 for doc, _ in results[:k] if is_relevant(doc, gold_keywords))
-    total_relevant = max(
-        1, sum(1 for doc, _ in results if is_relevant(doc, gold_keywords))
-    )
-    return hits / total_relevant
-
-
-def precision_at_k(results, gold_keywords, k):
-    if k == 0:
-        return 0.0
-    return sum(1 for doc, _ in results[:k] if is_relevant(doc, gold_keywords)) / k
-
-
-def score_stats(scores: list[float]) -> dict:
-    if not scores:
-        return {}
-    return {
-        "mean": statistics.mean(scores),
-        "std": statistics.pstdev(scores),
-        "min": min(scores),
-        "max": max(scores),
-        "gap_top2": scores[0] - scores[1] if len(scores) > 1 else float("nan"),
-    }
-
-
-def kendall_tau(baseline_contents, other_contents):
-    common = [c for c in baseline_contents if c in other_contents]
-    if len(common) < 2:
-        return float("nan")
-    rank_b = [baseline_contents.index(c) for c in common]
-    rank_o = [other_contents.index(c) for c in common]
-    tau, _ = kendalltau(rank_b, rank_o)
-    return tau
-
-
-def jaccard_similarity(set_a: set, set_b: set) -> float:
-    if not set_a and not set_b:
-        return 1.0
-    return len(set_a & set_b) / len(set_a | set_b)
-
-
-def token_overlap_pct(text_a: str, text_b: str) -> float:
-    tokens_a = set(text_a.lower().split())
-    tokens_b = set(text_b.lower().split())
-    return jaccard_similarity(tokens_a, tokens_b) * 100
-
-
-def tfidf_cosine_similarity(texts_a: list[str], texts_b: list[str]) -> float:
-    sims = []
-    for a, b in zip(texts_a, texts_b):
-        if not a.strip() or not b.strip():
-            continue
-        try:
-            vec = TfidfVectorizer().fit_transform([a, b])
-            sims.append(cos_sim(vec[0], vec[1])[0][0])
-        except Exception:
-            pass
-    return (statistics.mean(sims) * 100) if sims else float("nan")
-
-
-def score_scale_similarity(b_scores, t_scores) -> float:
-    if len(b_scores) < 2 or len(t_scores) < 2:
-        return float("nan")
-    n = min(len(b_scores), len(t_scores))
-    b_arr = np.array(b_scores[:n], dtype=float)
-    t_arr = np.array(t_scores[:n], dtype=float)
-    if b_arr.std() == 0 or t_arr.std() == 0:
-        return 100.0 if np.allclose(b_arr, t_arr) else float("nan")
-    corr = float(np.corrcoef(b_arr, t_arr)[0, 1])
-    return max(0.0, corr) * 100
-
-
-def rank_position_similarity(b_contents, t_contents) -> float:
-    common = [c for c in b_contents if c in t_contents]
-    if not common:
-        return 0.0
-    k = max(len(b_contents), len(t_contents), 1)
-    diffs = [abs(b_contents.index(c) - t_contents.index(c)) for c in common]
-    mean_diff = statistics.mean(diffs)
-    max_possible = k - 1 if k > 1 else 1
-    return max(0.0, (1 - mean_diff / max_possible)) * 100
-
-
-def compute_similarity_report(b_results, t_results) -> dict:
-    b_contents = [d.page_content for d, _ in b_results]
-    t_contents = [d.page_content for d, _ in t_results]
-    b_scores = [s for _, s in b_results]
-    t_scores = [s for _, s in t_results]
-
-    set_jaccard = jaccard_similarity(set(b_contents), set(t_contents)) * 100
-    top1_tok = (
-        token_overlap_pct(b_contents[0], t_contents[0])
-        if b_contents and t_contents
-        else float("nan")
-    )
-    tfidf_cos = tfidf_cosine_similarity(b_contents, t_contents)
-    score_corr = score_scale_similarity(b_scores, t_scores)
-    rank_acc = rank_position_similarity(b_contents, t_contents)
-
-    components = [
-        v
-        for v in [set_jaccard, top1_tok, tfidf_cos, score_corr, rank_acc]
-        if not (isinstance(v, float) and math.isnan(v))
-    ]
-    overall = statistics.mean(components) if components else float("nan")
-
-    return {
-        "result_set_jaccard_%": set_jaccard,
-        "top1_token_overlap_%": top1_tok,
-        "tfidf_cosine_%": tfidf_cos,
-        "score_corr_%": score_corr,
-        "rank_position_acc_%": rank_acc,
-        "overall_similarity_%": overall,
-    }
-
-
-def time_search(store, query, k, repeats):
-    latencies = []
-    result = None
-    for _ in range(repeats):
-        t0 = time.perf_counter()
-        result = store.similarity_search_with_score(query, k=k)
-        latencies.append((time.perf_counter() - t0) * 1000)
-    return result, latencies
-
-
-def snippet(text: str, width=70) -> str:
-    text = " ".join(text.split())
-    return textwrap.shorten(text, width=width, placeholder="…")
-
-
-def sep(char="─", width=90):
-    print(char * width)
-
-
-def header(title: str):
-    sep("═")
-    print(f"  {title}")
-    sep("═")
-
-
-def section(title: str):
-    print()
-    sep()
-    print(f"  {title}")
-    sep()
-
 
 def sanitize(obj):
     if isinstance(obj, np.floating):
@@ -436,109 +286,19 @@ def stdev(lst):
     return statistics.pstdev(lst) if len(lst) > 1 else 0.0
 
 
+def time_search(store, query, k, repeats):
+    latencies = []
+    result = None
+    for _ in range(repeats):
+        t0 = time.perf_counter()
+        result = store.search(query, k=k)
+        latencies.append((time.perf_counter() - t0) * 1000)
+    return result, latencies
+
+
 # ─────────────────────────────────────────────
 # PROCESS ISOLATION HELPERS
 # ─────────────────────────────────────────────
-
-
-def check_available(store_name: str) -> bool:
-    if store_name == "baseline":
-        return True
-    elif store_name == "turbovec":
-        try:
-            from turbovec.langchain import TurboQuantVectorStore
-
-            return True
-        except ImportError:
-            return False
-    elif store_name == "faiss":
-        try:
-            from langchain_community.vectorstores import FAISS
-
-            return True
-        except ImportError:
-            return False
-    elif store_name == "qdrant":
-        try:
-            from qdrant_client import QdrantClient
-
-            return True
-        except ImportError:
-            return False
-    elif store_name == "usearch":
-        try:
-            from langchain_community.vectorstores import USearch
-
-            return True
-        except ImportError:
-            return False
-    return False
-
-
-def build_store(store_name: str, docs, embeddings, vecs, texts, metadatas, embed_dim):
-    if store_name == "baseline":
-        from langchain_core.vectorstores import InMemoryVectorStore
-
-        store = InMemoryVectorStore(embeddings)
-        store.add_texts(texts, embeddings=vecs.tolist(), metadatas=metadatas)
-        return store
-    elif store_name == "turbovec":
-        from turbovec.langchain import TurboQuantVectorStore
-
-        return TurboQuantVectorStore.from_documents(
-            documents=docs, embedding=embeddings, bit_width=BIT_WIDTH
-        )
-    elif store_name == "faiss":
-        from langchain_community.vectorstores import FAISS as LangchainFAISS
-
-        return LangchainFAISS.from_embeddings(
-            text_embeddings=list(zip(texts, vecs.tolist())),
-            embedding=embeddings,
-            metadatas=metadatas,
-        )
-    elif store_name == "qdrant":
-        from qdrant_client import QdrantClient
-        from qdrant_client.models import Distance, VectorParams
-        from langchain_qdrant import QdrantVectorStore
-
-        col = f"bench_{uuid.uuid4().hex[:8]}"
-        client = QdrantClient(":memory:")
-        client.create_collection(
-            col, vectors_config=VectorParams(size=embed_dim, distance=Distance.COSINE)
-        )
-        from langchain_core.embeddings import Embeddings
-        class MockEmbed(Embeddings):
-            def embed_documents(self, t): return vecs.tolist()
-            def embed_query(self, q): return embeddings.embed_query(q)
-
-        store = QdrantVectorStore(
-            client=client, collection_name=col, embedding=MockEmbed()
-        )
-        store.add_texts(texts, metadatas=metadatas)
-        store.embeddings = embeddings  # Restore real embedding for queries
-        return store
-    elif store_name == "usearch":
-        from langchain_community.vectorstores import USearch
-        from langchain_community.docstore.in_memory import InMemoryDocstore
-        import usearch.index
-        
-        index = usearch.index.Index(ndim=embed_dim, metric="cos")
-        store = USearch(
-            embedding=embeddings,
-            index=index,
-            docstore=InMemoryDocstore(),
-            ids=[]
-        )
-        from langchain_core.embeddings import Embeddings
-        class MockEmbed(Embeddings):
-            def embed_documents(self, t): return vecs.tolist()
-            def embed_query(self, q): return embeddings.embed_query(q)
-        
-        store.embedding = MockEmbed()
-        store.add_texts(texts, metadatas=metadatas)
-        store.embedding = embeddings
-        return store
-    raise ValueError(f"Unknown store: {store_name}")
 
 
 def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path: str):
@@ -550,7 +310,8 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
         output_dir, f"summary_{max_samples}_{store_name}.json.tmp"
     )
 
-    if not check_available(store_name):
+    store_cls = VectorStoreRegistry.get_store_class(store_name)
+    if not store_cls or not store_cls.is_available():
         with open(tmp_json_path, "w", encoding="utf-8") as f:
             json.dump({"available": False}, f)
         return
@@ -587,28 +348,14 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
     tracker.start()
 
     t0 = time.perf_counter()
-    store = build_store(store_name, docs, embeddings, vecs, texts, metadatas, embed_dim)
+    store = store_cls.build(docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH)
     elapsed = time.perf_counter() - t0
 
     peak_rss = tracker.stop()
     rss_after = rss_mb()
     rss_delta = rss_after - rss_start
 
-    # Calculate theoretical bytes
-    if store_name == "baseline":
-        # InMemoryVectorStore keeps python dicts/lists
-        # approx: 2 * embed_dim * 4 (float32 vectors + text content strings)
-        theory_mb = (embed_dim * 4 * len(docs)) / 1e6
-    elif store_name == "turbovec":
-        theory_mb = (quantized_bytes_per_vector(embed_dim, BIT_WIDTH) * len(docs)) / 1e6
-    elif store_name == "faiss":
-        theory_mb = (theoretical_bytes_per_vector(embed_dim) * len(docs)) / 1e6
-    elif store_name == "qdrant":
-        theory_mb = (theoretical_bytes_per_vector(embed_dim) * len(docs)) / 1e6
-    elif store_name == "usearch":
-        theory_mb = (theoretical_bytes_per_vector(embed_dim) * len(docs)) / 1e6
-    else:
-        theory_mb = 0.0
+    theory_mb = store_cls.theoretical_bytes(embed_dim, len(docs), bit_width=BIT_WIDTH)
 
     idx_stats = {
         "index_time_s": elapsed,
@@ -661,29 +408,7 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str):
     txt_path = os.path.join(output_dir, f"results_{max_samples}.txt")
     json_path = os.path.join(output_dir, f"summary_{max_samples}.json")
 
-    # Tee stdout → file + terminal
-    class Tee:
-        def __init__(self, *files):
-            self.files = files
-
-        def write(self, data):
-            for f in self.files:
-                f.write(data)
-                f.flush()
-
-        def flush(self):
-            for f in self.files:
-                f.flush()
-
-        def isatty(self):
-            return False
-
-        def fileno(self):
-            return self.files[0].fileno()
-
-        @property
-        def encoding(self):
-            return getattr(self.files[0], "encoding", "utf-8")
+    # Tee is imported from reporting.tee
 
     txt_file = open(txt_path, "w", encoding="utf-8")
     original_stdout = sys.stdout
@@ -695,13 +420,13 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str):
         sys.stdout = original_stdout
         txt_file.close()
 
-    print(f"\n  [SAVED] Full output  → {txt_path}")
-    print(f"  [SAVED] JSON summary → {json_path}")
+    print(f"\n  [SAVED] Full output  -> {txt_path}")
+    print(f"  [SAVED] JSON summary -> {json_path}")
 
 
 def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_path: str):
     # Find all stores we support
-    all_supported_stores = ["baseline", "turbovec", "faiss", "qdrant", "usearch"]
+    all_supported_stores = VectorStoreRegistry.get_all_names()
 
     header(f"VECTOR STORE BENCHMARK  ·  {max_samples:,} samples")
     print(f"  CSV            : {csv_path}")
@@ -717,7 +442,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     worker_results = {}
     for name in all_supported_stores:
         print(
-            f"  Running {STORE_DISPLAY[name]} in isolated process...",
+            f"  Running {VectorStoreRegistry.get_display_name(name)} in isolated process...",
             end=" ",
             flush=True,
         )
@@ -834,7 +559,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         else:
             ratio_str = "—"
         print(
-            f"  {STORE_DISPLAY.get(name, name):<22} {s['index_time_s']:>8.3f} "
+            f"  {VectorStoreRegistry.get_display_name(name):<22} {s['index_time_s']:>8.3f} "
             f"{s['docs_per_sec']:>9.1f} {s['rss_delta_mb']:>11.1f} "
             f"{theory:>12.2f} {ratio_str:>12}"
         )
@@ -910,7 +635,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         print(
             "  "
             + " | ".join(
-                f"{STORE_DISPLAY.get(n, n):<20} {'score':>8}  {'snippet':<{col_w}}"
+                f"{VectorStoreRegistry.get_display_name(n):<20} {'score':>8}  {'snippet':<{col_w}}"
                 for n in active_stores
             )
         )
@@ -970,13 +695,13 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         print(
             "  Latency (avg ms): "
             + "  |  ".join(
-                f"{STORE_DISPLAY.get(n, n)}: {avg(lats_map[n][qi - 1]):.2f}ms"
+                f"{VectorStoreRegistry.get_display_name(n)}: {avg(lats_map[n][qi - 1]):.2f}ms"
                 for n in active_stores
             )
         )
         for name in active_stores:
             res = results_map[name][qi - 1]
-            label = STORE_DISPLAY.get(name, name)
+            label = VectorStoreRegistry.get_display_name(name)
             print(
                 f"  {label:<22}  "
                 f"R@1={recall_at_k(res, gold_kws, 1):.2f} "
@@ -1007,7 +732,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
 
     print(
         f"\n  {'Metric':<35}  "
-        + "  ".join(f"{STORE_DISPLAY.get(n, n):>{col}}" for n in active_stores)
+        + "  ".join(f"{VectorStoreRegistry.get_display_name(n):>{col}}" for n in active_stores)
         + f"  {'Winner':>12}"
     )
     sep("-", 35 + col * len(active_stores) + 15)
@@ -1024,7 +749,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             (min if prefer == "lower" else max)(valid, key=valid.get) if valid else "—"
         )
         val_str = "  ".join(f"{vals[n]:>{col}.4f}" for n in active_stores)
-        print(f"  {label:<35}  {val_str}  {STORE_DISPLAY.get(winner, winner):>12}")
+        print(f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}")
         for name in active_stores:
             summary_metrics["stores"][name][label] = vals[name]
 
@@ -1045,7 +770,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         val_str = "  ".join(
             f"{vals.get(n, float('nan')):>{col}.4f}" for n in active_stores
         )
-        print(f"  {label:<35}  {val_str}  {STORE_DISPLAY.get(winner, winner):>12}")
+        print(f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}")
         for name in active_stores:
             summary_metrics["stores"][name][label] = vals.get(name, float("nan"))
 
@@ -1068,7 +793,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             default="—",
         )
         print(
-            f"  {'Compression vs baseline [*]':<35}  {ratio_str}  {STORE_DISPLAY.get(winner_r, winner_r):>12}"
+            f"  {'Compression vs baseline [*]':<35}  {ratio_str}  {VectorStoreRegistry.get_display_name(winner_r):>12}"
         )
         for name in active_stores:
             summary_metrics["stores"][name]["Compression vs baseline"] = ratio_vals.get(
@@ -1086,7 +811,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         top3_rate = avg(top3_overlaps[name]) / 3
         top5_rate = avg(top5_overlaps[name]) / 5
         tau_val = avg([t for t in agg[name]["tau"] if not math.isnan(t)])
-        label = STORE_DISPLAY.get(name, name)
+        label = VectorStoreRegistry.get_display_name(name)
         print(
             f"  vs Baseline — {label:<20}  "
             f"Top-1: {top1_rate:.2f}  Top-3: {top3_rate:.2f}  "
@@ -1113,7 +838,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     for name in active_stores:
         if name == "baseline":
             continue
-        label = STORE_DISPLAY.get(name, name)
+        label = VectorStoreRegistry.get_display_name(name)
         print(f"\n  ╔══ {label} {'═' * 50}╗")
         for key, short in sim_labels_agg.items():
             vals = [v for v in sim_agg[name][key] if not math.isnan(v)]
@@ -1175,7 +900,7 @@ if __name__ == "__main__":
         help="If specified, run benchmark only for this store",
     )
     parser.add_argument(
-        "--dataset", type=str, default=CSV_PATH, help="Path to the input CSV dataset"
+        "--dataset", type=str, default=CSV_PATH, required=(CSV_PATH is None), help="Path to the input CSV dataset"
     )
     parser.add_argument(
         "--is-subprocess",

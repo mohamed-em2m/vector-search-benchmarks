@@ -29,21 +29,19 @@ import os
 import subprocess
 import sys
 
+from core.registry import VectorStoreRegistry
+import stores.baseline
+import stores.turbovec_store
+import stores.faiss_store
+import stores.qdrant_store
+import stores.usearch_store
+
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
 SAMPLE_SIZES  = [500, 5000, 50000, 500000]
 OUTPUT_DIR    = "./results"
 SKIP_EXISTING = False   # set True to resume interrupted runs
-
-# Store display names (must match run_benchmark.py)
-STORE_DISPLAY = {
-    "baseline": "Baseline (InMem)",
-    "turbovec": "TurboVec (3bit)",
-    "faiss":    "FAISS (FlatL2)",
-    "qdrant":   "Qdrant (in-mem)",
-    "usearch":  "USearch (HNSW)",
-}
 
 # Metrics to pull from each summary_N.json, with (display_label, prefer)
 METRIC_DEFS = [
@@ -186,7 +184,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
 
     pr_hdr("AGGREGATE CROSS-SAMPLE COMPARISON")
     pr(f"  Sample sizes : {', '.join(f'{n:,}' for n in sizes_available)}")
-    pr(f"  Stores       : {', '.join(STORE_DISPLAY.get(s, s) for s in all_stores)}")
+    pr(f"  Stores       : {', '.join(VectorStoreRegistry.get_display_name(s) for s in all_stores)}")
     pr(f"  Metrics      : {len(METRIC_DEFS)}")
 
     # ── Section per store: metric × sample-size table ─────────
@@ -195,7 +193,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     col_w = 12
 
     for store_name in all_stores:
-        store_label = STORE_DISPLAY.get(store_name, store_name)
+        store_label = VectorStoreRegistry.get_display_name(store_name)
         pr(f"\n  ┌─ {store_label} {'─' * 60}┐")
 
         size_header = "  ".join(f"{n:>{col_w},}" for n in sizes_available)
@@ -230,7 +228,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         pr(f"\n  ┌─ {metric_label}  (prefer {prefer}) {'─' * 45}┐")
 
         col = 14
-        store_header = "  ".join(f"{STORE_DISPLAY.get(s,s):>{col}}" for s in all_stores)
+        store_header = "  ".join(f"{VectorStoreRegistry.get_display_name(s):>{col}}" for s in all_stores)
         pr(f"  │ {'Samples':>10}  {store_header}  {'Winner':>16}")
         pr_sep("-", 10 + col * len(all_stores) + 22)
 
@@ -242,7 +240,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
 
             val_str = "  ".join(f"{fmt(vals[sn]):>{col}}" for sn in all_stores)
             winner  = highlight_winner(vals, prefer)
-            winner_label = STORE_DISPLAY.get(winner, winner)
+            winner_label = VectorStoreRegistry.get_display_name(winner)
             pr(f"  │ {n:>10,}  {val_str}  {winner_label:>16}")
 
         pr(f"  └{'─' * 80}┘")
@@ -290,7 +288,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     pr_sep("-", 65)
     for sn in all_stores:
         wc = win_counts[sn]
-        label = STORE_DISPLAY.get(sn, sn)
+        label = VectorStoreRegistry.get_display_name(sn)
         pr(f"  {label:<22} {wc['total']:>6} {wc.get('speed',0):>6} "
            f"{wc.get('quality',0):>8} {wc.get('memory',0):>8} {wc.get('agreement',0):>10}")
 
@@ -316,7 +314,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         else:
             trend = ""
 
-        label = STORE_DISPLAY.get(sn, sn)
+        label = VectorStoreRegistry.get_display_name(sn)
         pr(f"  {label:<22} {lat_str}{trend}")
 
     pr_sep("═")
@@ -330,7 +328,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     comparison_data = {
         "sample_sizes": sizes_available,
         "stores": all_stores,
-        "store_display": {sn: STORE_DISPLAY.get(sn, sn) for sn in all_stores},
+        "store_display": {sn: VectorStoreRegistry.get_display_name(sn) for sn in all_stores},
         "win_counts": win_counts,
         "per_store_per_metric": {},
     }
