@@ -4,6 +4,7 @@ from langchain_core.documents import Document
 from core.store import AbstractVectorStore
 from core.registry import VectorStoreRegistry
 
+
 @VectorStoreRegistry.register("qdrant", "Qdrant (in-mem)")
 class QdrantStore(AbstractVectorStore):
     def __init__(self):
@@ -13,12 +14,22 @@ class QdrantStore(AbstractVectorStore):
     def is_available(cls) -> bool:
         try:
             from qdrant_client import QdrantClient
+
             return True
         except ImportError:
             return False
 
     @classmethod
-    def build(cls, docs: List[Document], embeddings: Any, vecs: Any, texts: List[str], metadatas: List[dict], embed_dim: int, **kwargs) -> "AbstractVectorStore":
+    def build(
+        cls,
+        docs: List[Document],
+        embeddings: Any,
+        vecs: Any,
+        texts: List[str],
+        metadatas: List[dict],
+        embed_dim: int,
+        **kwargs,
+    ) -> "AbstractVectorStore":
         from qdrant_client import QdrantClient
         from qdrant_client.models import Distance, VectorParams
         from langchain_qdrant import QdrantVectorStore
@@ -29,16 +40,22 @@ class QdrantStore(AbstractVectorStore):
         client.create_collection(
             col, vectors_config=VectorParams(size=embed_dim, distance=Distance.COSINE)
         )
+
+        precomputed = vecs.tolist()
+
         class MockEmbed(Embeddings):
-            def embed_documents(self, t): return vecs.tolist()
-            def embed_query(self, q): return embeddings.embed_query(q)
+            def embed_documents(self, t):
+                return precomputed
+
+            def embed_query(self, q):
+                return embeddings.embed_query(q)  # real embeddings for queries
 
         instance = cls()
         instance.store = QdrantVectorStore(
             client=client, collection_name=col, embedding=MockEmbed()
         )
         instance.store.add_texts(texts, metadatas=metadatas)
-        instance.store.embeddings = embeddings  # Restore real embedding for queries
+        # Removed: instance.store.embeddings = embeddings  ← was the bug
         return instance
 
     def search(self, query: str, k: int) -> List[Tuple[Document, float]]:
