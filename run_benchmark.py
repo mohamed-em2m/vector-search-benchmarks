@@ -377,7 +377,11 @@ def run_worker_mode(
 
 
 def run_benchmark(
-    max_samples: int, output_dir: str, csv_path: str, test_cases_path: str, use_memray: bool = False
+    max_samples: int,
+    output_dir: str,
+    csv_path: str,
+    test_cases_path: str,
+    use_memray: bool = False,
 ):
     os.makedirs(output_dir, exist_ok=True)
     txt_path = os.path.join(output_dir, f"results_{max_samples}.txt")
@@ -390,7 +394,9 @@ def run_benchmark(
     sys.stdout = Tee(original_stdout, txt_file)
 
     try:
-        _run_orchestrator(max_samples, json_path, output_dir, csv_path, test_cases_path, use_memray)
+        _run_orchestrator(
+            max_samples, json_path, output_dir, csv_path, test_cases_path, use_memray
+        )
     finally:
         sys.stdout = original_stdout
         txt_file.close()
@@ -931,7 +937,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--test-cases",
         type=str,
-        default="tests_cases.json",
+        default="./data/test_cases.json",
         help="Path to the JSON file containing test queries",
     )
     parser.add_argument(
