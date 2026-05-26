@@ -22,8 +22,23 @@ class USearchStore(AbstractVectorStore):
         from langchain_community.docstore.in_memory import InMemoryDocstore
         import usearch.index
         from langchain_core.embeddings import Embeddings
-        
-        index = usearch.index.Index(ndim=embed_dim, metric="cos")
+
+        # Configurable parameters
+        metric = kwargs.get("metric", "cos")
+        connectivity = kwargs.get("connectivity", None)
+        expansion_add = kwargs.get("expansion_add", None)
+        expansion_search = kwargs.get("expansion_search", None)
+
+        # Build the USearch index with configurable params
+        index_kwargs = {"ndim": embed_dim, "metric": metric}
+        if connectivity is not None:
+            index_kwargs["connectivity"] = int(connectivity)
+        if expansion_add is not None:
+            index_kwargs["expansion_add"] = int(expansion_add)
+        if expansion_search is not None:
+            index_kwargs["expansion_search"] = int(expansion_search)
+
+        index = usearch.index.Index(**index_kwargs)
         instance = cls()
         instance.store = USearch(
             embedding=embeddings,

@@ -3,7 +3,8 @@ run_all.py — Orchestrator: runs run_benchmark.py for each sample size,
 then reads all JSON summaries and writes a single cross-sample comparison.
 
 Usage:
-    python run_all.py
+    python run_all.py --dataset ./data/data.csv
+    python run_all.py --config benchmark_config.yaml
 
 Writes (all inside ./results/):
     results_500.txt
@@ -30,14 +31,17 @@ import subprocess
 import sys
 
 from core.registry import VectorStoreRegistry
+from core.config import load_config
+
 import stores.baseline
 import stores.turbovec_store
 import stores.faiss_store
 import stores.qdrant_store
 import stores.usearch_store
+import stores.scann_store
 
 # ─────────────────────────────────────────────
-# CONFIG
+# CONFIG (defaults, overridable via YAML)
 # ─────────────────────────────────────────────
 SAMPLE_SIZES = [500, 5000, 50000, 500000]
 OUTPUT_DIR = "./results"
@@ -131,19 +135,31 @@ def highlight_winner(vals: dict, prefer: str) -> str:
     return fn(valid, key=valid.get)
 
 
+def _get_display_name(store_key: str, display_map: dict) -> str:
+    """Get display name from the merged display map, falling back to registry."""
+    if store_key in display_map:
+        return display_map[store_key]
+    return VectorStoreRegistry.get_display_name(store_key)
+
+
 # ─────────────────────────────────────────────
 # STEP 1: RUN BENCHMARKS
 # ─────────────────────────────────────────────
 
 
 def run_all_benchmarks(
-    dataset_path: str = None, test_cases_path: str = None, use_memray: bool = False
+    sample_sizes: list[int],
+    output_dir: str,
+    dataset_path: str = None,
+    test_cases_path: str = None,
+    use_memray: bool = False,
+    config_path: str = None,
 ):
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     python = sys.executable
 
-    for n in SAMPLE_SIZES:
-        txt_path = os.path.join(OUTPUT_DIR, f"results_{n}.txt")
+    for n in sample_sizes:
+        txt_path = os.path.join(output_dir, f"results_{n}.txt")
 
         if SKIP_EXISTING and os.path.exists(txt_path):
             print(f"\n  [SKIP] {n:,} samples — results already exist ({txt_path})")
@@ -159,8 +175,10 @@ def run_all_benchmarks(
             "--samples",
             str(n),
             "--output-dir",
-            OUTPUT_DIR,
+            output_dir,
         ]
+        if config_path:
+            cmd.extend(["--config", config_path])
         if dataset_path:
             cmd.extend(["--dataset", dataset_path])
         if test_cases_path:
@@ -181,10 +199,12 @@ def run_all_benchmarks(
 # ─────────────────────────────────────────────
 
 
-def load_all_summaries() -> dict[int, dict]:
+def load_all_summaries(
+    sample_sizes: list[int], output_dir: str
+) -> dict[int, dict]:
     summaries = {}
-    for n in SAMPLE_SIZES:
-        path = os.path.join(OUTPUT_DIR, f"summary_{n}.json")
+    for n in sample_sizes:
+        path = os.path.join(output_dir, f"summary_{n}.json")
         s = load_summary(path)
         if s is None:
             print(f"  [WARN] Missing summary for n={n:,}: {path}")
@@ -199,12 +219,18 @@ def load_all_summaries() -> dict[int, dict]:
 
 
 def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
-    # Collect all store names seen across any run
+    # Collect all store/variant names seen across any run
     all_stores: list[str] = []
     for s in summaries.values():
         for name in s.get("stores", {}):
             if name not in all_stores:
                 all_stores.append(name)
+
+    # Build a merged display name map from all summaries' variant_display fields
+    display_map: dict[str, str] = {}
+    for s in summaries.values():
+        vd = s.get("variant_display", {})
+        display_map.update(vd)
 
     sizes_available = sorted(summaries.keys())
 
@@ -234,7 +260,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     pr_hdr("AGGREGATE CROSS-SAMPLE COMPARISON")
     pr(f"  Sample sizes : {', '.join(f'{n:,}' for n in sizes_available)}")
     pr(
-        f"  Stores       : {', '.join(VectorStoreRegistry.get_display_name(s) for s in all_stores)}"
+        f"  Stores       : {', '.join(_get_display_name(s, display_map) for s in all_stores)}"
     )
     pr(f"  Metrics      : {len(METRIC_DEFS)}")
 
@@ -244,7 +270,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     col_w = 12
 
     for store_name in all_stores:
-        store_label = VectorStoreRegistry.get_display_name(store_name)
+        store_label = _get_display_name(store_name, display_map)
         pr(f"\n  ┌─ {store_label} {'─' * 60}┐")
 
         size_header = "  ".join(f"{n:>{col_w},}" for n in sizes_available)
@@ -280,7 +306,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
 
         col = 14
         store_header = "  ".join(
-            f"{VectorStoreRegistry.get_display_name(s):>{col}}" for s in all_stores
+            f"{_get_display_name(s, display_map):>{col}}" for s in all_stores
         )
         pr(f"  │ {'Samples':>10}  {store_header}  {'Winner':>16}")
         pr_sep("-", 10 + col * len(all_stores) + 22)
@@ -295,7 +321,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
 
             val_str = "  ".join(f"{fmt(vals[sn]):>{col}}" for sn in all_stores)
             winner = highlight_winner(vals, prefer)
-            winner_label = VectorStoreRegistry.get_display_name(winner)
+            winner_label = _get_display_name(winner, display_map)
             pr(f"  │ {n:>10,}  {val_str}  {winner_label:>16}")
 
         pr(f"  └{'─' * 80}┘")
@@ -347,7 +373,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     pr_sep("-", 65)
     for sn in all_stores:
         wc = win_counts[sn]
-        label = VectorStoreRegistry.get_display_name(sn)
+        label = _get_display_name(sn, display_map)
         pr(
             f"  {label:<22} {wc['total']:>6} {wc.get('speed', 0):>6} "
             f"{wc.get('quality', 0):>8} {wc.get('memory', 0):>8} {wc.get('agreement', 0):>10}"
@@ -383,7 +409,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         else:
             trend = ""
 
-        label = VectorStoreRegistry.get_display_name(sn)
+        label = _get_display_name(sn, display_map)
         pr(f"  {label:<22} {lat_str}{trend}")
 
     pr_sep("═")
@@ -398,7 +424,7 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         "sample_sizes": sizes_available,
         "stores": all_stores,
         "store_display": {
-            sn: VectorStoreRegistry.get_display_name(sn) for sn in all_stores
+            sn: _get_display_name(sn, display_map) for sn in all_stores
         },
         "win_counts": win_counts,
         "per_store_per_metric": {},
@@ -439,13 +465,35 @@ def main():
         help="Path to the JSON file containing test queries",
     )
     parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to YAML config file (overrides CLI defaults)",
+    )
+    parser.add_argument(
         "--memray",
         action="store_true",
         help="Use memray for detailed tracking of memory usage",
     )
     args = parser.parse_args()
 
-    if args.memray:
+    # Load config if provided
+    cfg = None
+    if args.config:
+        cfg = load_config(args.config)
+
+    # Resolve settings: config wins, CLI fills gaps
+    sample_sizes = (cfg.sample_sizes if cfg and cfg.sample_sizes else None) or SAMPLE_SIZES
+    output_dir = (cfg.output_dir if cfg else None) or args.output_dir if hasattr(args, 'output_dir') else OUTPUT_DIR
+    if cfg and cfg.output_dir:
+        output_dir = cfg.output_dir
+    else:
+        output_dir = OUTPUT_DIR
+    dataset_path = (cfg.dataset if cfg else None) or args.dataset
+    test_cases_path = (cfg.test_cases if cfg else None) or args.test_cases
+    use_memray = (cfg.use_memray if cfg else False) or args.memray
+
+    if use_memray:
         if sys.platform == "win32":
             parser.error(
                 "Memray does not support native Windows. Please run the benchmark "
@@ -460,25 +508,30 @@ def main():
             )
 
     header("MULTI-SCALE VECTOR STORE BENCHMARK ORCHESTRATOR")
-    print(f"  Sample sizes : {', '.join(f'{n:,}' for n in SAMPLE_SIZES)}")
-    print(f"  Output dir   : {OUTPUT_DIR}")
+    print(f"  Sample sizes : {', '.join(f'{n:,}' for n in sample_sizes)}")
+    print(f"  Output dir   : {output_dir}")
     print(f"  Skip existing: {SKIP_EXISTING}")
-    if args.memray:
+    if args.config:
+        print(f"  Config file  : {args.config}")
+    if use_memray:
         print(f"  Memory Profiler: Memray (Detailed)")
-    if args.dataset:
-        print(f"  Dataset path : {args.dataset}")
+    if dataset_path:
+        print(f"  Dataset path : {dataset_path}")
 
     # Step 1 — Run individual benchmarks
     section("PHASE 1 · RUNNING INDIVIDUAL BENCHMARKS")
     run_all_benchmarks(
-        dataset_path=args.dataset,
-        test_cases_path=args.test_cases,
-        use_memray=args.memray,
+        sample_sizes=sample_sizes,
+        output_dir=output_dir,
+        dataset_path=dataset_path,
+        test_cases_path=test_cases_path,
+        use_memray=use_memray,
+        config_path=args.config,
     )
 
     # Step 2 — Load summaries
     section("PHASE 2 · LOADING JSON SUMMARIES")
-    summaries = load_all_summaries()
+    summaries = load_all_summaries(sample_sizes, output_dir)
     if not summaries:
         print("  No summaries found. Exiting.")
         return
@@ -488,14 +541,14 @@ def main():
 
     # Step 3 — Build comparison
     section("PHASE 3 · BUILDING CROSS-SAMPLE COMPARISON")
-    out_txt = os.path.join(OUTPUT_DIR, "aggregate_comparison.txt")
-    out_json = os.path.join(OUTPUT_DIR, "aggregate_comparison.json")
+    out_txt = os.path.join(output_dir, "aggregate_comparison.txt")
+    out_json = os.path.join(output_dir, "aggregate_comparison.json")
     build_comparison(summaries, out_txt, out_json)
     print(f"\n  [SAVED] {out_txt}")
     print(f"  [SAVED] {out_json}")
 
     section("DONE")
-    print(f"  All output files are in: {os.path.abspath(OUTPUT_DIR)}/")
+    print(f"  All output files are in: {os.path.abspath(output_dir)}/")
     print(f"  Individual results : results_500.txt, results_5000.txt, …")
     print(f"  Individual metrics : summary_500.json, summary_5000.json, …")
     print(f"  Cross-sample report: aggregate_comparison.txt")

@@ -3,8 +3,8 @@ run_benchmark.py — Single-run benchmark for one sample size.
 Isolates each store's benchmarking in a separate subprocess.
 
 Usage:
-    python run_benchmark.py --samples 500  --output-dir ./results
-    python run_benchmark.py --samples 5000 --output-dir ./results
+    python run_benchmark.py --samples 500  --dataset ./data/data.csv
+    python run_benchmark.py --config benchmark_config.yaml --samples 500
 """
 
 import argparse
@@ -24,6 +24,15 @@ import pandas as pd
 from langchain_core.documents import Document
 
 from core.registry import VectorStoreRegistry
+from core.config import (
+    BenchmarkConfig,
+    StoreVariant,
+    load_config,
+    merge_cli_and_config,
+    resolve_config_variants,
+    variant_params_to_cli,
+    variant_params_from_cli,
+)
 from core.metrics import (
     is_relevant,
     recall_at_k,
@@ -44,8 +53,9 @@ import stores.turbovec_store
 import stores.faiss_store
 import stores.qdrant_store
 import stores.usearch_store
+import stores.scann_store
 
-# ── STATIC CONFIG
+# ── STATIC DEFAULTS (overridable via config)
 CSV_PATH = None  # Set via --dataset CLI arg; no hardcoded default
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 BIT_WIDTH = 3
@@ -215,13 +225,24 @@ def run_worker_mode(
     csv_path: str,
     test_cases_path: str,
     use_memray: bool = False,
+    variant_id: str = None,
+    variant_params: dict = None,
+    model_name: str = None,
+    top_k: int = None,
+    timing_repeats: int = None,
 ):
     """
-    Worker mode: Run only a single store in this fresh process, measure metrics,
-    and save them to a temporary JSON file.
+    Worker mode: Run only a single store variant in this fresh process,
+    measure metrics, and save them to a temporary JSON file.
     """
+    _model_name = model_name or MODEL_NAME
+    _top_k = top_k or TOP_K
+    _timing_repeats = timing_repeats or N_TIMING_REPEATS
+    _variant_id = variant_id or store_name
+    _variant_params = variant_params or {}
+
     tmp_json_path = os.path.join(
-        output_dir, f"summary_{max_samples}_{store_name}.json.tmp"
+        output_dir, f"summary_{max_samples}_{_variant_id}.json.tmp"
     )
 
     with open(test_cases_path, "r", encoding="utf-8") as f:
@@ -241,7 +262,7 @@ def run_worker_mode(
     from langchain_huggingface import HuggingFaceEmbeddings
 
     embeddings = HuggingFaceEmbeddings(
-        model_name=MODEL_NAME,
+        model_name=_model_name,
         model_kwargs={"device": "cpu"},
         encode_kwargs={"device": "cpu"},
     )
@@ -254,6 +275,10 @@ def run_worker_mode(
     metadatas = [d.metadata for d in docs]
     vecs = np.array(embeddings.embed_documents(texts), dtype=np.float32)
 
+    # Merge default bit_width into variant params if not already set
+    build_kwargs = {"bit_width": _variant_params.get("bit_width", BIT_WIDTH)}
+    build_kwargs.update(_variant_params)
+
     # Clean GC and pause before starting building to get accurate start memory
     gc.collect()
     gc.collect()
@@ -264,7 +289,7 @@ def run_worker_mode(
     if use_memray:
         import memray
 
-        bin_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.bin")
+        bin_path = os.path.join(output_dir, f"memray_{max_samples}_{_variant_id}.bin")
         if os.path.exists(bin_path):
             try:
                 os.remove(bin_path)
@@ -274,7 +299,7 @@ def run_worker_mode(
         t0 = time.perf_counter()
         with memray.Tracker(bin_path, native_traces=True):
             store = store_cls.build(
-                docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH
+                docs, embeddings, vecs, texts, metadatas, embed_dim, **build_kwargs
             )
         elapsed = time.perf_counter() - t0
 
@@ -289,7 +314,7 @@ def run_worker_mode(
             peak_rss = 0.0
 
         # Generate HTML flamegraph
-        html_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.html")
+        html_path = os.path.join(output_dir, f"memray_{max_samples}_{_variant_id}.html")
         try:
             subprocess.run(
                 [
@@ -314,7 +339,7 @@ def run_worker_mode(
 
         t0 = time.perf_counter()
         store = store_cls.build(
-            docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH
+            docs, embeddings, vecs, texts, metadatas, embed_dim, **build_kwargs
         )
         elapsed = time.perf_counter() - t0
 
@@ -323,7 +348,7 @@ def run_worker_mode(
     rss_after = rss_mb()
     rss_delta = rss_after - rss_start
 
-    theory_mb = store_cls.theoretical_bytes(embed_dim, len(docs), bit_width=BIT_WIDTH)
+    theory_mb = store_cls.theoretical_bytes(embed_dim, len(docs), **build_kwargs)
 
     idx_stats = {
         "index_time_s": elapsed,
@@ -342,7 +367,7 @@ def run_worker_mode(
         query = case["query"]
         gold_kws = case["gold_kws"]
         desc = case["desc"]
-        res, lats = time_search(store, query, TOP_K, N_TIMING_REPEATS)
+        res, lats = time_search(store, query, _top_k, _timing_repeats)
 
         # Serialize results to plain types
         serialized_results = []
@@ -382,12 +407,14 @@ def run_benchmark(
     csv_path: str,
     test_cases_path: str,
     use_memray: bool = False,
+    variants: list[StoreVariant] = None,
+    model_name: str = None,
+    top_k: int = None,
+    timing_repeats: int = None,
 ):
     os.makedirs(output_dir, exist_ok=True)
     txt_path = os.path.join(output_dir, f"results_{max_samples}.txt")
     json_path = os.path.join(output_dir, f"summary_{max_samples}.json")
-
-    # Tee is imported from reporting.tee
 
     txt_file = open(txt_path, "w", encoding="utf-8")
     original_stdout = sys.stdout
@@ -395,7 +422,16 @@ def run_benchmark(
 
     try:
         _run_orchestrator(
-            max_samples, json_path, output_dir, csv_path, test_cases_path, use_memray
+            max_samples,
+            json_path,
+            output_dir,
+            csv_path,
+            test_cases_path,
+            use_memray,
+            variants=variants,
+            model_name=model_name,
+            top_k=top_k,
+            timing_repeats=timing_repeats,
         )
     finally:
         sys.stdout = original_stdout
@@ -412,9 +448,30 @@ def _run_orchestrator(
     csv_path: str,
     test_cases_path: str,
     use_memray: bool = False,
+    variants: list[StoreVariant] = None,
+    model_name: str = None,
+    top_k: int = None,
+    timing_repeats: int = None,
 ):
-    # Find all stores we support
-    all_supported_stores = VectorStoreRegistry.get_all_names()
+    _model_name = model_name or MODEL_NAME
+    _top_k = top_k or TOP_K
+    _timing_repeats = timing_repeats or N_TIMING_REPEATS
+
+    # Resolve variants: if none provided, run all registered stores with defaults
+    if variants is None:
+        all_names = VectorStoreRegistry.get_all_names()
+        variants = [
+            StoreVariant(
+                store_key=n,
+                variant_id=n,
+                variant_name=VectorStoreRegistry.get_display_name(n),
+                params={},
+            )
+            for n in all_names
+        ]
+
+    # Build a display-name lookup from variant_id -> variant_name
+    variant_display = {v.variant_id: v.variant_name for v in variants}
 
     # Load test queries
     with open(test_cases_path, "r", encoding="utf-8") as f:
@@ -422,11 +479,13 @@ def _run_orchestrator(
 
     header(f"VECTOR STORE BENCHMARK  ·  {max_samples:,} samples")
     print(f"  CSV            : {csv_path}")
-    print(f"  Embedding model: {MODEL_NAME}")
+    print(f"  Embedding model: {_model_name}")
     print(f"  Samples        : {max_samples:,}")
-    print(f"  TurboVec bits  : {BIT_WIDTH}")
-    print(f"  Top-k          : {TOP_K}")
-    print(f"  Timing repeats : {N_TIMING_REPEATS}")
+    print(f"  Top-k          : {_top_k}")
+    print(f"  Timing repeats : {_timing_repeats}")
+    print(f"  Variants       : {len(variants)}")
+    for v in variants:
+        print(f"    · {v.variant_name}  (store={v.store_key}, params={v.params or '{}'})")
     if use_memray:
         print(f"  Memory Profiler: Memray (Detailed)")
 
@@ -434,15 +493,15 @@ def _run_orchestrator(
     section("1 · RUNNING PROCESS-ISOLATED BENCHMARKS")
 
     worker_results = {}
-    for name in all_supported_stores:
+    for var in variants:
         print(
-            f"  Running {VectorStoreRegistry.get_display_name(name)} in isolated process...",
+            f"  Running {var.variant_name} in isolated process...",
             end=" ",
             flush=True,
         )
         t0 = time.time()
 
-        # Invoke this script with flags for the store
+        # Invoke this script with flags for the store variant
         cmd = [
             sys.executable,
             __file__,
@@ -451,12 +510,22 @@ def _run_orchestrator(
             "--output-dir",
             output_dir,
             "--store",
-            name,
+            var.store_key,
             "--dataset",
             csv_path,
             "--test-cases",
             test_cases_path,
             "--is-subprocess",
+            "--variant-id",
+            var.variant_id,
+            "--variant-params",
+            variant_params_to_cli(var.params),
+            "--model-name",
+            _model_name,
+            "--top-k",
+            str(_top_k),
+            "--timing-repeats",
+            str(_timing_repeats),
         ]
         if use_memray:
             cmd.append("--memray")
@@ -485,7 +554,7 @@ def _run_orchestrator(
 
         # Load temporary json
         tmp_json_path = os.path.join(
-            output_dir, f"summary_{max_samples}_{name}.json.tmp"
+            output_dir, f"summary_{max_samples}_{var.variant_id}.json.tmp"
         )
         if not os.path.exists(tmp_json_path):
             print("FAILED (no temp JSON created)")
@@ -504,16 +573,16 @@ def _run_orchestrator(
             print("SKIPPED (not installed)")
             continue
 
-        worker_results[name] = data
+        worker_results[var.variant_id] = data
         print(f"done ({time.time() - t0:.1f}s)")
 
-    active_stores = list(worker_results.keys())
-    if not active_stores:
+    active_variants = list(worker_results.keys())
+    if not active_variants:
         print("  Error: No vector stores were successfully benchmarked.")
         return
 
     # Extract embed_dim from the first successful worker run
-    embed_dim = worker_results[active_stores[0]]["embed_dim"]
+    embed_dim = worker_results[active_variants[0]]["embed_dim"]
 
     # Load data metadata (just for reporting, fast)
     df = load_csv(csv_path, max_samples)
@@ -525,7 +594,7 @@ def _run_orchestrator(
     print(f"  EN: {lang_counts['en']:,}  |  AR: {lang_counts['ar']:,}")
 
     # Reconstruct idx_stats
-    idx_stats = {name: worker_results[name]["idx_stats"] for name in active_stores}
+    idx_stats = {vid: worker_results[vid]["idx_stats"] for vid in active_variants}
 
     section("2 · INDEXING & STORAGE")
     full = theoretical_bytes_per_vector(embed_dim) * len(docs)
@@ -552,9 +621,22 @@ def _run_orchestrator(
         f"\n  {'Store':<22} {'Time(s)':>8} {'docs/s':>9} {mem_col_label:>15} {'Theory(MB)':>12} {'Compression':>12}"
     )
     sep("-", 84 if use_memray else 80)
-    baseline_theory = idx_stats.get("baseline", {}).get("theoretical_mb", None)
-    for name in active_stores:
-        s = idx_stats[name]
+
+    # Find the first baseline variant for compression ratio
+    baseline_vid = None
+    for vid in active_variants:
+        # A variant is "baseline" if its store_key is "baseline"
+        for v in variants:
+            if v.variant_id == vid and v.store_key == "baseline":
+                baseline_vid = vid
+                break
+        if baseline_vid:
+            break
+
+    baseline_theory = idx_stats.get(baseline_vid, {}).get("theoretical_mb", None) if baseline_vid else None
+
+    for vid in active_variants:
+        s = idx_stats[vid]
         theory = s["theoretical_mb"]
         if baseline_theory and baseline_theory > 0:
             ratio_str = f"{baseline_theory / theory:.1f}x" if theory > 0 else "—"
@@ -564,7 +646,7 @@ def _run_orchestrator(
         if mem_val is None:
             mem_val = float("nan")
         print(
-            f"  {VectorStoreRegistry.get_display_name(name):<22} {s['index_time_s']:>8.3f} "
+            f"  {variant_display.get(vid, vid):<22} {s['index_time_s']:>8.3f} "
             f"{s['docs_per_sec']:>9.1f} {mem_val:>15.1f} "
             f"{theory:>12.2f} {ratio_str:>12}"
         )
@@ -572,10 +654,10 @@ def _run_orchestrator(
     # Reconstruct query results
     results_map = {}
     lats_map = {}
-    for name in active_stores:
-        results_map[name] = []
-        lats_map[name] = []
-        for q_data in worker_results[name]["queries"]:
+    for vid in active_variants:
+        results_map[vid] = []
+        lats_map[vid] = []
+        for q_data in worker_results[vid]["queries"]:
             # Reconstruct list of (Document, score)
             doc_list = []
             for r in q_data["results"]:
@@ -587,14 +669,14 @@ def _run_orchestrator(
                         r["score"],
                     )
                 )
-            results_map[name].append(doc_list)
-            lats_map[name].append(q_data["latencies"])
+            results_map[vid].append(doc_list)
+            lats_map[vid].append(q_data["latencies"])
 
     # ── Per-query benchmark
     section("3 · PER-QUERY RESULTS")
 
     agg = {
-        name: {
+        vid: {
             "latencies": [],
             "recall1": [],
             "recall3": [],
@@ -606,10 +688,13 @@ def _run_orchestrator(
             "score_gaps": [],
             "tau": [],
         }
-        for name in active_stores
+        for vid in active_variants
     }
+
+    # Similarity aggregation — only for non-baseline variants when baseline exists
+    non_baseline_vids = [vid for vid in active_variants if vid != baseline_vid]
     sim_agg = {
-        name: {
+        vid: {
             k: []
             for k in [
                 "result_set_jaccard_%",
@@ -620,12 +705,11 @@ def _run_orchestrator(
                 "overall_similarity_%",
             ]
         }
-        for name in active_stores
-        if name != "baseline"
-    }
-    top1_matches = {n: 0 for n in active_stores if n != "baseline"}
-    top3_overlaps = {n: [] for n in active_stores if n != "baseline"}
-    top5_overlaps = {n: [] for n in active_stores if n != "baseline"}
+        for vid in non_baseline_vids
+    } if baseline_vid else {}
+    top1_matches = {vid: 0 for vid in non_baseline_vids} if baseline_vid else {}
+    top3_overlaps = {vid: [] for vid in non_baseline_vids} if baseline_vid else {}
+    top5_overlaps = {vid: [] for vid in non_baseline_vids} if baseline_vid else {}
 
     for qi, case in enumerate(test_queries, 1):
         query = case["query"]
@@ -635,35 +719,36 @@ def _run_orchestrator(
         print(f'     "{snippet(query, 80)}"')
         print(f"     Gold: {gold_kws or '(none — OOD)'}")
 
-        b_results = results_map["baseline"][qi - 1]
-        b_contents = [d.page_content for d, _ in b_results]
+        # Baseline results (if available)
+        b_results = results_map.get(baseline_vid, [None] * len(test_queries))[qi - 1] if baseline_vid else None
+        b_contents = [d.page_content for d, _ in b_results] if b_results else []
 
         col_w = 35
         print()
         print(
             "  "
             + " | ".join(
-                f"{VectorStoreRegistry.get_display_name(n):<20} {'score':>8}  {'snippet':<{col_w}}"
-                for n in active_stores
+                f"{variant_display.get(vid, vid):<20} {'score':>8}  {'snippet':<{col_w}}"
+                for vid in active_variants
             )
         )
-        sep("-", max(90, 70 * len(active_stores)))
+        sep("-", max(90, 70 * len(active_variants)))
 
-        for rank in range(TOP_K):
+        for rank in range(_top_k):
             row_parts = []
-            for name in active_stores:
-                res = results_map[name][qi - 1]
+            for vid in active_variants:
+                res = results_map[vid][qi - 1]
                 doc, sc = res[rank] if rank < len(res) else (None, float("nan"))
                 rel = "✓" if doc and is_relevant(doc, gold_kws) else " "
                 snip = snippet(doc.page_content if doc else "", col_w)
                 row_parts.append(f"  {rel}{sc:>7.4f}  {snip:<{col_w}}")
             print(f"  {rank + 1:<3}" + " | ".join(row_parts))
 
-        sep("-", max(90, 70 * len(active_stores)))
+        sep("-", max(90, 70 * len(active_variants)))
 
-        for name in active_stores:
-            res = results_map[name][qi - 1]
-            lats = lats_map[name][qi - 1]
+        for vid in active_variants:
+            res = results_map[vid][qi - 1]
+            lats = lats_map[vid][qi - 1]
             scores = [s for _, s in res]
             contents = [d.page_content for d, _ in res]
 
@@ -674,42 +759,42 @@ def _run_orchestrator(
             p3 = precision_at_k(res, gold_kws, 3)
             p5 = precision_at_k(res, gold_kws, 5)
 
-            agg[name]["latencies"].extend(lats)
-            agg[name]["recall1"].append(r1)
-            agg[name]["recall3"].append(r3)
-            agg[name]["recall5"].append(r5)
-            agg[name]["prec1"].append(p1)
-            agg[name]["prec3"].append(p3)
-            agg[name]["prec5"].append(p5)
+            agg[vid]["latencies"].extend(lats)
+            agg[vid]["recall1"].append(r1)
+            agg[vid]["recall3"].append(r3)
+            agg[vid]["recall5"].append(r5)
+            agg[vid]["prec1"].append(p1)
+            agg[vid]["prec3"].append(p3)
+            agg[vid]["prec5"].append(p5)
             if scores:
-                agg[name]["top1_scores"].append(scores[0])
+                agg[vid]["top1_scores"].append(scores[0])
                 if len(scores) > 1:
-                    agg[name]["score_gaps"].append(scores[0] - scores[1])
+                    agg[vid]["score_gaps"].append(scores[0] - scores[1])
 
-            if name != "baseline":
+            if baseline_vid and vid != baseline_vid and b_contents:
                 tau = kendall_tau(b_contents, contents)
-                agg[name]["tau"].append(tau)
+                agg[vid]["tau"].append(tau)
                 top1_match = (
                     (b_contents[0] == contents[0]) if b_contents and contents else False
                 )
                 if top1_match:
-                    top1_matches[name] += 1
-                top3_overlaps[name].append(len(set(b_contents[:3]) & set(contents[:3])))
-                top5_overlaps[name].append(len(set(b_contents[:5]) & set(contents[:5])))
+                    top1_matches[vid] += 1
+                top3_overlaps[vid].append(len(set(b_contents[:3]) & set(contents[:3])))
+                top5_overlaps[vid].append(len(set(b_contents[:5]) & set(contents[:5])))
                 sim = compute_similarity_report(b_results, res)
                 for k, v in sim.items():
-                    sim_agg[name][k].append(v)
+                    sim_agg[vid][k].append(v)
 
         print(
             "  Latency (avg ms): "
             + "  |  ".join(
-                f"{VectorStoreRegistry.get_display_name(n)}: {avg(lats_map[n][qi - 1]):.2f}ms"
-                for n in active_stores
+                f"{variant_display.get(vid, vid)}: {avg(lats_map[vid][qi - 1]):.2f}ms"
+                for vid in active_variants
             )
         )
-        for name in active_stores:
-            res = results_map[name][qi - 1]
-            label = VectorStoreRegistry.get_display_name(name)
+        for vid in active_variants:
+            res = results_map[vid][qi - 1]
+            label = variant_display.get(vid, vid)
             print(
                 f"  {label:<22}  "
                 f"R@1={recall_at_k(res, gold_kws, 1):.2f} "
@@ -741,31 +826,31 @@ def _run_orchestrator(
     print(
         f"\n  {'Metric':<35}  "
         + "  ".join(
-            f"{VectorStoreRegistry.get_display_name(n):>{col}}" for n in active_stores
+            f"{variant_display.get(vid, vid):>{col}}" for vid in active_variants
         )
         + f"  {'Winner':>12}"
     )
-    sep("-", 35 + col * len(active_stores) + 15)
+    sep("-", 35 + col * len(active_variants) + 15)
 
     summary_metrics: dict = {"samples": max_samples, "stores": {}}
 
-    for name in active_stores:
-        summary_metrics["stores"][name] = {}
+    for vid in active_variants:
+        summary_metrics["stores"][vid] = {}
 
     for label, key, prefer, fn in metric_defs:
-        vals = {name: fn(agg[name][key]) for name in active_stores}
+        vals = {vid: fn(agg[vid][key]) for vid in active_variants}
         valid = {n: v for n, v in vals.items() if not math.isnan(v)}
         winner = (
             (min if prefer == "lower" else max)(valid, key=valid.get) if valid else "—"
         )
-        val_str = "  ".join(f"{vals[n]:>{col}.4f}" for n in active_stores)
+        val_str = "  ".join(f"{vals[vid]:>{col}.4f}" for vid in active_variants)
         print(
-            f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}"
+            f"  {label:<35}  {val_str}  {variant_display.get(winner, winner):>12}"
         )
-        for name in active_stores:
-            summary_metrics["stores"][name][label] = vals[name]
+        for vid in active_variants:
+            summary_metrics["stores"][vid][label] = vals[vid]
 
-    sep("-", 35 + col * len(active_stores) + 15)
+    sep("-", 35 + col * len(active_variants) + 15)
 
     metrics_to_print = [
         ("Index time (s)", "index_time_s", "lower"),
@@ -780,9 +865,9 @@ def _run_orchestrator(
 
     for label, key, prefer in metrics_to_print:
         vals = {
-            name: idx_stats[name].get(key, float("nan"))
-            for name in active_stores
-            if name in idx_stats
+            vid: idx_stats[vid].get(key, float("nan"))
+            for vid in active_variants
+            if vid in idx_stats
         }
         # filter out nan/None values to compute winner
         valid_vals = {
@@ -794,26 +879,25 @@ def _run_orchestrator(
             else "—"
         )
         val_str = "  ".join(
-            f"{vals.get(n, float('nan')):>{col}.4f}" for n in active_stores
+            f"{vals.get(vid, float('nan')):>{col}.4f}" for vid in active_variants
         )
         print(
-            f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}"
+            f"  {label:<35}  {val_str}  {variant_display.get(winner, winner):>12}"
         )
-        for name in active_stores:
-            summary_metrics["stores"][name][label] = vals.get(name, float("nan"))
+        for vid in active_variants:
+            summary_metrics["stores"][vid][label] = vals.get(vid, float("nan"))
 
     # compression ratio vs baseline
-    b_theory = idx_stats.get("baseline", {}).get("theoretical_mb", None)
-    if b_theory:
+    if baseline_vid and baseline_theory:
         ratio_vals = {
-            name: (b_theory / idx_stats[name]["theoretical_mb"])
-            if idx_stats.get(name, {}).get("theoretical_mb", 0) > 0
+            vid: (baseline_theory / idx_stats[vid]["theoretical_mb"])
+            if idx_stats.get(vid, {}).get("theoretical_mb", 0) > 0
             else float("nan")
-            for name in active_stores
-            if name in idx_stats
+            for vid in active_variants
+            if vid in idx_stats
         }
         ratio_str = "  ".join(
-            f"{ratio_vals.get(n, float('nan')):>{col}.2f}" for n in active_stores
+            f"{ratio_vals.get(vid, float('nan')):>{col}.2f}" for vid in active_variants
         )
         winner_r = max(
             (n for n in ratio_vals if not math.isnan(ratio_vals[n])),
@@ -821,81 +905,82 @@ def _run_orchestrator(
             default="—",
         )
         print(
-            f"  {'Compression vs baseline [*]':<35}  {ratio_str}  {VectorStoreRegistry.get_display_name(winner_r):>12}"
+            f"  {'Compression vs baseline [*]':<35}  {ratio_str}  {variant_display.get(winner_r, winner_r):>12}"
         )
-        for name in active_stores:
-            summary_metrics["stores"][name]["Compression vs baseline"] = ratio_vals.get(
-                name, float("nan")
+        for vid in active_variants:
+            summary_metrics["stores"][vid]["Compression vs baseline"] = ratio_vals.get(
+                vid, float("nan")
             )
     print(
         f"  [*] RSS Δ = index struct only (embedding excluded). Theoretical = exact math, no allocator noise."
     )
 
-    sep("-", 35 + col * len(active_stores) + 15)
-    for name in active_stores:
-        if name == "baseline":
-            continue
-        top1_rate = top1_matches[name] / len(test_queries)
-        top3_rate = avg(top3_overlaps[name]) / 3
-        top5_rate = avg(top5_overlaps[name]) / 5
-        tau_val = avg([t for t in agg[name]["tau"] if not math.isnan(t)])
-        label = VectorStoreRegistry.get_display_name(name)
-        print(
-            f"  vs Baseline — {label:<20}  "
-            f"Top-1: {top1_rate:.2f}  Top-3: {top3_rate:.2f}  "
-            f"Top-5: {top5_rate:.2f}  Kendall τ: {tau_val:+.4f}"
-        )
-        summary_metrics["stores"][name]["top1_match_rate"] = top1_rate
-        summary_metrics["stores"][name]["top3_overlap_rate"] = top3_rate
-        summary_metrics["stores"][name]["top5_overlap_rate"] = top5_rate
-        summary_metrics["stores"][name]["kendall_tau"] = tau_val
+    # Baseline comparison section (only if baseline exists)
+    if baseline_vid and non_baseline_vids:
+        sep("-", 35 + col * len(active_variants) + 15)
+        for vid in non_baseline_vids:
+            top1_rate = top1_matches[vid] / len(test_queries)
+            top3_rate = avg(top3_overlaps[vid]) / 3
+            top5_rate = avg(top5_overlaps[vid]) / 5
+            tau_val = avg([t for t in agg[vid]["tau"] if not math.isnan(t)])
+            label = variant_display.get(vid, vid)
+            print(
+                f"  vs Baseline — {label:<20}  "
+                f"Top-1: {top1_rate:.2f}  Top-3: {top3_rate:.2f}  "
+                f"Top-5: {top5_rate:.2f}  Kendall τ: {tau_val:+.4f}"
+            )
+            summary_metrics["stores"][vid]["top1_match_rate"] = top1_rate
+            summary_metrics["stores"][vid]["top3_overlap_rate"] = top3_rate
+            summary_metrics["stores"][vid]["top5_overlap_rate"] = top5_rate
+            summary_metrics["stores"][vid]["kendall_tau"] = tau_val
 
-    # ── Similarity section
-    section("5 · AGGREGATE SIMILARITY vs Baseline")
+        # ── Similarity section
+        section("5 · AGGREGATE SIMILARITY vs Baseline")
 
-    sim_labels_agg = {
-        "result_set_jaccard_%": "Result-set Jaccard",
-        "top1_token_overlap_%": "Top-1 token overlap",
-        "tfidf_cosine_%": "TF-IDF cosine",
-        "score_corr_%": "Score correlation",
-        "rank_position_acc_%": "Rank position acc.",
-        "overall_similarity_%": "★ OVERALL",
-    }
+        sim_labels_agg = {
+            "result_set_jaccard_%": "Result-set Jaccard",
+            "top1_token_overlap_%": "Top-1 token overlap",
+            "tfidf_cosine_%": "TF-IDF cosine",
+            "score_corr_%": "Score correlation",
+            "rank_position_acc_%": "Rank position acc.",
+            "overall_similarity_%": "★ OVERALL",
+        }
 
-    bar_w = 35
-    for name in active_stores:
-        if name == "baseline":
-            continue
-        label = VectorStoreRegistry.get_display_name(name)
-        print(f"\n  ╔══ {label} {'═' * 50}╗")
-        for key, short in sim_labels_agg.items():
-            vals = [v for v in sim_agg[name][key] if not math.isnan(v)]
-            if not vals:
-                print(f"  ║   {short:<25}  n/a")
-                continue
-            mean_v = statistics.mean(vals)
-            filled = int(round(mean_v / 100 * bar_w))
-            bar = "█" * filled + "░" * (bar_w - filled)
-            prefix = "║  ★" if "OVERALL" in short else "║   "
-            print(f"  {prefix} {short:<25}  {mean_v:5.1f}%  [{bar}]")
-            summary_metrics["stores"][name][f"sim_{key}"] = mean_v
+        bar_w = 35
+        for vid in non_baseline_vids:
+            label = variant_display.get(vid, vid)
+            print(f"\n  ╔══ {label} {'═' * 50}╗")
+            for key, short in sim_labels_agg.items():
+                vals = [v for v in sim_agg[vid][key] if not math.isnan(v)]
+                if not vals:
+                    print(f"  ║   {short:<25}  n/a")
+                    continue
+                mean_v = statistics.mean(vals)
+                filled = int(round(mean_v / 100 * bar_w))
+                bar = "█" * filled + "░" * (bar_w - filled)
+                prefix = "║  ★" if "OVERALL" in short else "║   "
+                print(f"  {prefix} {short:<25}  {mean_v:5.1f}%  [{bar}]")
+                summary_metrics["stores"][vid][f"sim_{key}"] = mean_v
 
-        overall_vals = [
-            v for v in sim_agg[name]["overall_similarity_%"] if not math.isnan(v)
-        ]
-        grand = statistics.mean(overall_vals) if overall_vals else float("nan")
-        verdict = (
-            "VERY HIGH"
-            if grand >= 85
-            else "HIGH"
-            if grand >= 70
-            else "MODERATE"
-            if grand >= 50
-            else "LOW"
-        )
-        print(f"  ╚══ Grand overall: {grand:.1f}%  Verdict: {verdict} {'═' * 20}╝")
+            overall_vals = [
+                v for v in sim_agg[vid]["overall_similarity_%"] if not math.isnan(v)
+            ]
+            grand = statistics.mean(overall_vals) if overall_vals else float("nan")
+            verdict = (
+                "VERY HIGH"
+                if grand >= 85
+                else "HIGH"
+                if grand >= 70
+                else "MODERATE"
+                if grand >= 50
+                else "LOW"
+            )
+            print(f"  ╚══ Grand overall: {grand:.1f}%  Verdict: {verdict} {'═' * 20}╝")
 
     sep("═")
+
+    # Store variant display names in summary for downstream consumers
+    summary_metrics["variant_display"] = variant_display
 
     # Write atomically
     tmp_path = json_path + ".tmp"
@@ -913,7 +998,8 @@ if __name__ == "__main__":
         description="Vector store benchmark for one sample size"
     )
     parser.add_argument(
-        "--samples", type=int, required=True, help="Number of rows to load from the CSV"
+        "--samples", type=int, required=False, default=None,
+        help="Number of rows to load from the CSV",
     )
     parser.add_argument(
         "--output-dir",
@@ -925,13 +1011,12 @@ if __name__ == "__main__":
         "--store",
         type=str,
         default=None,
-        help="If specified, run benchmark only for this store",
+        help="If specified, run benchmark only for this store (subprocess mode)",
     )
     parser.add_argument(
         "--dataset",
         type=str,
-        default=CSV_PATH,
-        required=(CSV_PATH is None),
+        default=None,
         help="Path to the input CSV dataset",
     )
     parser.add_argument(
@@ -939,6 +1024,12 @@ if __name__ == "__main__":
         type=str,
         default="./data/test_cases.json",
         help="Path to the JSON file containing test queries",
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to YAML config file (overrides CLI defaults)",
     )
     parser.add_argument(
         "--is-subprocess",
@@ -950,9 +1041,51 @@ if __name__ == "__main__":
         action="store_true",
         help="Use memray for detailed tracking of memory usage",
     )
+    # Variant-related args (used internally by subprocess calls)
+    parser.add_argument(
+        "--variant-id", type=str, default=None,
+        help="Internal: unique variant identifier",
+    )
+    parser.add_argument(
+        "--variant-params", type=str, default=None,
+        help="Internal: JSON-encoded variant parameters",
+    )
+    parser.add_argument(
+        "--model-name", type=str, default=None,
+        help="Embedding model name (overrides config/default)",
+    )
+    parser.add_argument(
+        "--top-k", type=int, default=None,
+        help="Number of results to retrieve per query",
+    )
+    parser.add_argument(
+        "--timing-repeats", type=int, default=None,
+        help="Number of timing repeats per query",
+    )
     args = parser.parse_args()
 
-    if args.memray:
+    # Load YAML config if specified
+    cfg = None
+    if args.config:
+        cfg = load_config(args.config)
+
+    # Merge CLI with config
+    cfg = merge_cli_and_config(args, cfg)
+
+    # Resolve final values
+    csv_path = cfg.dataset or args.dataset
+    if not csv_path:
+        parser.error("--dataset is required (or set 'dataset' in config YAML)")
+
+    test_cases_path = cfg.test_cases or args.test_cases
+    output_dir = cfg.output_dir or args.output_dir
+    use_memray = cfg.use_memray or args.memray
+    model_name = cfg.embedding_model or MODEL_NAME
+    top_k = cfg.top_k or TOP_K
+    timing_repeats = cfg.timing_repeats or N_TIMING_REPEATS
+    samples = cfg.samples or args.samples
+
+    if use_memray:
         if sys.platform == "win32":
             parser.error(
                 "Memray does not support native Windows. Please run the benchmark "
@@ -967,19 +1100,41 @@ if __name__ == "__main__":
             )
 
     if args.is_subprocess and args.store:
+        # Subprocess worker mode
+        variant_params = variant_params_from_cli(args.variant_params) if args.variant_params else {}
         run_worker_mode(
             store_name=args.store,
-            max_samples=args.samples,
-            output_dir=args.output_dir,
-            csv_path=args.dataset,
-            test_cases_path=args.test_cases,
-            use_memray=args.memray,
+            max_samples=samples,
+            output_dir=output_dir,
+            csv_path=csv_path,
+            test_cases_path=test_cases_path,
+            use_memray=use_memray,
+            variant_id=args.variant_id,
+            variant_params=variant_params,
+            model_name=args.model_name or model_name,
+            top_k=args.top_k or top_k,
+            timing_repeats=args.timing_repeats or timing_repeats,
         )
     else:
+        # Main orchestrator mode
+        if samples is None:
+            parser.error("--samples is required (or set 'samples' in config YAML)")
+
+        # Resolve variants from config
+        cfg = resolve_config_variants(
+            cfg,
+            VectorStoreRegistry.get_all_names(),
+            VectorStoreRegistry.get_display_names_map(),
+        )
+
         run_benchmark(
-            max_samples=args.samples,
-            output_dir=args.output_dir,
-            csv_path=args.dataset,
-            test_cases_path=args.test_cases,
-            use_memray=args.memray,
+            max_samples=samples,
+            output_dir=output_dir,
+            csv_path=csv_path,
+            test_cases_path=test_cases_path,
+            use_memray=use_memray,
+            variants=cfg.variants if cfg.variants else None,
+            model_name=model_name,
+            top_k=top_k,
+            timing_repeats=timing_repeats,
         )

@@ -24,3 +24,9 @@ class VectorStoreRegistry:
     @classmethod
     def get_display_name(cls, name: str) -> str:
         return cls._display_names.get(name, name)
+
+    @classmethod
+    def get_display_names_map(cls) -> Dict[str, str]:
+        """Return a copy of the {key: display_name} mapping."""
+        return dict(cls._display_names)
+
