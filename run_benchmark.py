@@ -506,10 +506,15 @@ def build_store(store_name: str, docs, embeddings, vecs, texts, metadatas, embed
         client.create_collection(
             col, vectors_config=VectorParams(size=embed_dim, distance=Distance.COSINE)
         )
+        class MockEmbed:
+            def embed_documents(self, t): return vecs.tolist()
+            def embed_query(self, q): return embeddings.embed_query(q)
+
         store = QdrantVectorStore(
-            client=client, collection_name=col, embedding=embeddings
+            client=client, collection_name=col, embedding=MockEmbed()
         )
-        store.add_texts(texts, embeddings=vecs.tolist(), metadatas=metadatas)
+        store.add_texts(texts, metadatas=metadatas)
+        store.embeddings = embeddings  # Restore real embedding for queries
         return store
     elif store_name == "usearch":
         from langchain_community.vectorstores import USearch
