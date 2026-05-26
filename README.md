@@ -2,9 +2,7 @@
 
 A multi-scale, modular benchmarking suite for evaluating different vector search stores and algorithms.
 
-<img src="./assets/thumbnail.gif" alt="Logo">
-
-
+<img src="./assets/thumbnail.gif" alt="Logo" width="auto" height="200px" >
 
 ## Overview
 
