@@ -1,0 +1,24 @@
+[project]
+name = "vector-search-tests"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "faiss-cpu>=1.14.2",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.4.0",
+    "langchain-huggingface>=1.2.2",
+    "langchain-qdrant>=1.1.0",
+    "nest-asyncio>=1.6.0",
+    "numpy>=2.4.6",
+    "pandas>=3.0.3",
+    "qdrant-client>=1.18.0",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "sentence-transformers>=5.5.1",
+    "torch>=2.12.0",
+    "transformers>=5.9.0",
+    "turbovec[langchain]>=0.5.3",
+    "usearch>=2.25.3",
+]
