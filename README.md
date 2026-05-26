@@ -30,7 +30,7 @@ The project has been refactored from a monolithic script into a clean, modular p
 │   ├── faiss_store.py   # FAISS FlatL2 store
 │   ├── qdrant_store.py  # Qdrant in-memory store
 │   └── usearch_store.py # USearch HNSW store
-├── tests_cases.py       # Global query dataset
+├── tests_cases.json     # Global query dataset (JSON form)
 ├── run_benchmark.py     # Main runner for a single sample size (process-isolated)
 └── run_all.py           # Multi-scale orchestrator and comparison compiler
 ```
@@ -119,5 +119,6 @@ uv run python run_benchmark.py --samples 500 --dataset /path/to/dataset.csv
 - `--dataset`: Path to the input CSV dataset.
 - `--store`: Run benchmark only for a specific store (e.g., `--store faiss`).
 - `--output-dir`: Custom directory for outputting results (defaults to `./results`).
+- `--test-cases`: Path to the JSON file containing the test queries (defaults to `tests_cases.json` in `run_benchmark.py` and `./data/test_cases.json` in `run_all.py`).
 
 Results are saved to `./results/`, which includes text results, JSON summaries, and a final cross-sample comparison report (`aggregate_comparison.txt` / `aggregate_comparison.json`).

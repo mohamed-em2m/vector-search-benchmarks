@@ -44,7 +44,6 @@ import stores.turbovec_store
 import stores.faiss_store
 import stores.qdrant_store
 import stores.usearch_store
-from tests_cases import TEST_QUERIES
 
 # ── STATIC CONFIG
 CSV_PATH = None  # Set via --dataset CLI arg; no hardcoded default
@@ -209,7 +208,14 @@ def time_search(store, query, k, repeats):
 # ─────────────────────────────────────────────
 
 
-def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path: str, use_memray: bool = False):
+def run_worker_mode(
+    store_name: str,
+    max_samples: int,
+    output_dir: str,
+    csv_path: str,
+    test_cases_path: str,
+    use_memray: bool = False,
+):
     """
     Worker mode: Run only a single store in this fresh process, measure metrics,
     and save them to a temporary JSON file.
@@ -217,6 +223,9 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
     tmp_json_path = os.path.join(
         output_dir, f"summary_{max_samples}_{store_name}.json.tmp"
     )
+
+    with open(test_cases_path, "r", encoding="utf-8") as f:
+        test_queries = json.load(f)
 
     store_cls = VectorStoreRegistry.get_store_class(store_name)
     if not store_cls or not store_cls.is_available():
@@ -254,6 +263,7 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
     memray_peak_mb = None
     if use_memray:
         import memray
+
         bin_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.bin")
         if os.path.exists(bin_path):
             try:
@@ -282,9 +292,18 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
         html_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.html")
         try:
             subprocess.run(
-                [sys.executable, "-m", "memray", "flamegraph", "-f", "-o", html_path, bin_path],
+                [
+                    sys.executable,
+                    "-m",
+                    "memray",
+                    "flamegraph",
+                    "-f",
+                    "-o",
+                    html_path,
+                    bin_path,
+                ],
                 capture_output=True,
-                text=True
+                text=True,
             )
         except Exception as e:
             print(f"Error generating memray flamegraph: {e}")
@@ -319,7 +338,10 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
 
     # Benchmark queries
     queries_data = []
-    for qi, (query, gold_kws, desc) in enumerate(TEST_QUERIES):
+    for qi, case in enumerate(test_queries):
+        query = case["query"]
+        gold_kws = case["gold_kws"]
+        desc = case["desc"]
         res, lats = time_search(store, query, TOP_K, N_TIMING_REPEATS)
 
         # Serialize results to plain types
@@ -354,7 +376,9 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
 # ─────────────────────────────────────────────
 
 
-def run_benchmark(max_samples: int, output_dir: str, csv_path: str, use_memray: bool = False):
+def run_benchmark(
+    max_samples: int, output_dir: str, csv_path: str, test_cases_path: str, use_memray: bool = False
+):
     os.makedirs(output_dir, exist_ok=True)
     txt_path = os.path.join(output_dir, f"results_{max_samples}.txt")
     json_path = os.path.join(output_dir, f"summary_{max_samples}.json")
@@ -366,7 +390,7 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str, use_memray: 
     sys.stdout = Tee(original_stdout, txt_file)
 
     try:
-        _run_orchestrator(max_samples, json_path, output_dir, csv_path, use_memray)
+        _run_orchestrator(max_samples, json_path, output_dir, csv_path, test_cases_path, use_memray)
     finally:
         sys.stdout = original_stdout
         txt_file.close()
@@ -375,9 +399,20 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str, use_memray: 
     print(f"  [SAVED] JSON summary -> {json_path}")
 
 
-def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_path: str, use_memray: bool = False):
+def _run_orchestrator(
+    max_samples: int,
+    json_path: str,
+    output_dir: str,
+    csv_path: str,
+    test_cases_path: str,
+    use_memray: bool = False,
+):
     # Find all stores we support
     all_supported_stores = VectorStoreRegistry.get_all_names()
+
+    # Load test queries
+    with open(test_cases_path, "r", encoding="utf-8") as f:
+        test_queries = json.load(f)
 
     header(f"VECTOR STORE BENCHMARK  ·  {max_samples:,} samples")
     print(f"  CSV            : {csv_path}")
@@ -413,6 +448,8 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             name,
             "--dataset",
             csv_path,
+            "--test-cases",
+            test_cases_path,
             "--is-subprocess",
         ]
         if use_memray:
@@ -584,8 +621,11 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     top3_overlaps = {n: [] for n in active_stores if n != "baseline"}
     top5_overlaps = {n: [] for n in active_stores if n != "baseline"}
 
-    for qi, (query, gold_kws, desc) in enumerate(TEST_QUERIES, 1):
-        print(f"\n  ── Query {qi:02d}/{len(TEST_QUERIES)} · {desc}")
+    for qi, case in enumerate(test_queries, 1):
+        query = case["query"]
+        gold_kws = case["gold_kws"]
+        desc = case["desc"]
+        print(f"\n  ── Query {qi:02d}/{len(test_queries)} · {desc}")
         print(f'     "{snippet(query, 80)}"')
         print(f"     Gold: {gold_kws or '(none — OOD)'}")
 
@@ -729,17 +769,23 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
         metrics_to_print.append(("Memray Peak (MB)", "memray_peak_mb", "lower"))
     else:
         metrics_to_print.append(("RSS delta (MB) [*]", "rss_delta_mb", "lower"))
-    
+
     metrics_to_print.append(("Theoretical MB [*]", "theoretical_mb", "lower"))
 
     for label, key, prefer in metrics_to_print:
         vals = {
-            name: idx_stats[name].get(key, float("nan")) for name in active_stores if name in idx_stats
+            name: idx_stats[name].get(key, float("nan"))
+            for name in active_stores
+            if name in idx_stats
         }
         # filter out nan/None values to compute winner
-        valid_vals = {k: v for k, v in vals.items() if v is not None and not math.isnan(v)}
+        valid_vals = {
+            k: v for k, v in vals.items() if v is not None and not math.isnan(v)
+        }
         winner = (
-            (min if prefer == "lower" else max)(valid_vals, key=valid_vals.get) if valid_vals else "—"
+            (min if prefer == "lower" else max)(valid_vals, key=valid_vals.get)
+            if valid_vals
+            else "—"
         )
         val_str = "  ".join(
             f"{vals.get(n, float('nan')):>{col}.4f}" for n in active_stores
@@ -783,7 +829,7 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     for name in active_stores:
         if name == "baseline":
             continue
-        top1_rate = top1_matches[name] / len(TEST_QUERIES)
+        top1_rate = top1_matches[name] / len(test_queries)
         top3_rate = avg(top3_overlaps[name]) / 3
         top5_rate = avg(top5_overlaps[name]) / 5
         tau_val = avg([t for t in agg[name]["tau"] if not math.isnan(t)])
@@ -883,6 +929,12 @@ if __name__ == "__main__":
         help="Path to the input CSV dataset",
     )
     parser.add_argument(
+        "--test-cases",
+        type=str,
+        default="tests_cases.json",
+        help="Path to the JSON file containing test queries",
+    )
+    parser.add_argument(
         "--is-subprocess",
         action="store_true",
         help="Internal flag to signal subprocess run",
@@ -914,6 +966,7 @@ if __name__ == "__main__":
             max_samples=args.samples,
             output_dir=args.output_dir,
             csv_path=args.dataset,
+            test_cases_path=args.test_cases,
             use_memray=args.memray,
         )
     else:
@@ -921,5 +974,6 @@ if __name__ == "__main__":
             max_samples=args.samples,
             output_dir=args.output_dir,
             csv_path=args.dataset,
+            test_cases_path=args.test_cases,
             use_memray=args.memray,
         )

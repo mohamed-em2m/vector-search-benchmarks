@@ -2646,9 +2646,6 @@ dependencies = [
 memray = [
     { name = "memray" },
 ]
-mermay = [
-    { name = "memray" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -2658,7 +2655,6 @@ requires-dist = [
     { name = "langchain-huggingface", specifier = ">=1.2.2" },
     { name = "langchain-qdrant", specifier = ">=1.1.0" },
     { name = "memray", marker = "extra == 'memray'", specifier = ">=1.12.0" },
-    { name = "memray", marker = "extra == 'mermay'", specifier = ">=1.12.0" },
     { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "pandas", specifier = ">=3.0.3" },
@@ -2672,7 +2668,7 @@ requires-dist = [
     { name = "usearch", specifier = ">=2.25.3" },
     { name = "wrapt", specifier = ">=2.2.1" },
 ]
-provides-extras = ["memray", "mermay"]
+provides-extras = ["memray"]
 
 [[package]]
 name = "wrapt"

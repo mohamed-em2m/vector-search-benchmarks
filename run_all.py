@@ -136,7 +136,9 @@ def highlight_winner(vals: dict, prefer: str) -> str:
 # ─────────────────────────────────────────────
 
 
-def run_all_benchmarks(dataset_path: str = None, use_memray: bool = False):
+def run_all_benchmarks(
+    dataset_path: str = None, test_cases_path: str = None, use_memray: bool = False
+):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     python = sys.executable
 
@@ -161,6 +163,8 @@ def run_all_benchmarks(dataset_path: str = None, use_memray: bool = False):
         ]
         if dataset_path:
             cmd.extend(["--dataset", dataset_path])
+        if test_cases_path:
+            cmd.extend(["--test-cases", test_cases_path])
         if use_memray:
             cmd.append("--memray")
         ret = subprocess.run(
@@ -429,6 +433,12 @@ def main():
         "--dataset", type=str, default=None, help="Path to the input CSV dataset"
     )
     parser.add_argument(
+        "--test-cases",
+        type=str,
+        default="./data/test_cases.json",
+        help="Path to the JSON file containing test queries",
+    )
+    parser.add_argument(
         "--memray",
         action="store_true",
         help="Use memray for detailed tracking of memory usage",
@@ -460,7 +470,11 @@ def main():
 
     # Step 1 — Run individual benchmarks
     section("PHASE 1 · RUNNING INDIVIDUAL BENCHMARKS")
-    run_all_benchmarks(dataset_path=args.dataset, use_memray=args.memray)
+    run_all_benchmarks(
+        dataset_path=args.dataset,
+        test_cases_path=args.test_cases,
+        use_memray=args.memray,
+    )
 
     # Step 2 — Load summaries
     section("PHASE 2 · LOADING JSON SUMMARIES")
