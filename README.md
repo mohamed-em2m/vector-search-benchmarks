@@ -89,6 +89,15 @@ This project uses `uv` for dependency management. To set up the environment, run
 uv sync
 ```
 
+### Optional dependencies
+
+To use the detailed memory profiling feature with `memray`:
+
+```bash
+# Install with memray support
+uv sync --extra memray
+```
+
 ---
 
 ## Running the Benchmarks
