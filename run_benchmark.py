@@ -506,7 +506,8 @@ def build_store(store_name: str, docs, embeddings, vecs, texts, metadatas, embed
         client.create_collection(
             col, vectors_config=VectorParams(size=embed_dim, distance=Distance.COSINE)
         )
-        class MockEmbed:
+        from langchain_core.embeddings import Embeddings
+        class MockEmbed(Embeddings):
             def embed_documents(self, t): return vecs.tolist()
             def embed_query(self, q): return embeddings.embed_query(q)
 
@@ -528,8 +529,8 @@ def build_store(store_name: str, docs, embeddings, vecs, texts, metadatas, embed
             docstore=InMemoryDocstore(),
             ids=[]
         )
-        # Mock embedding to avoid re-computing
-        class MockEmbed:
+        from langchain_core.embeddings import Embeddings
+        class MockEmbed(Embeddings):
             def embed_documents(self, t): return vecs.tolist()
             def embed_query(self, q): return embeddings.embed_query(q)
         
