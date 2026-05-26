@@ -1,0 +1,432 @@
+══════════════════════════════════════════════════════════════════════════════════════════
+  VECTOR STORE BENCHMARK  ·  5 samples
+══════════════════════════════════════════════════════════════════════════════════════════
+  CSV            : data/temp_dummy.csv
+  Embedding model: sentence-transformers/all-MiniLM-L6-v2
+  Samples        : 5
+  TurboVec bits  : 3
+  Top-k          : 5
+  Timing repeats : 5
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  1 · RUNNING PROCESS-ISOLATED BENCHMARKS
+──────────────────────────────────────────────────────────────────────────────────────────
+  Running Baseline (InMem) in isolated process... done (41.0s)
+  Running TurboVec (3bit) in isolated process... done (18.4s)
+  Running FAISS (FlatL2) in isolated process... done (18.9s)
+  Running Qdrant (in-mem) in isolated process... FAILED (code 1)
+    [stderr]:
+      Traceback (most recent call last):
+        File "C:\Users\emam2\tech_projects\vector-search-tests\run_benchmark.py", line 964, in <module>
+          run_worker_mode(
+        File "C:\Users\emam2\tech_projects\vector-search-tests\run_benchmark.py", line 227, in run_worker_mode
+          with open(test_cases_path, "r", encoding="utf-8") as f:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      FileNotFoundError: [Errno 2] No such file or directory: 'tests_cases.json'
+  Running USearch (HNSW) in isolated process... FAILED (code 1)
+    [stderr]:
+      Traceback (most recent call last):
+        File "C:\Users\emam2\tech_projects\vector-search-tests\run_benchmark.py", line 964, in <module>
+          run_worker_mode(
+        File "C:\Users\emam2\tech_projects\vector-search-tests\run_benchmark.py", line 227, in run_worker_mode
+          with open(test_cases_path, "r", encoding="utf-8") as f:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      FileNotFoundError: [Errno 2] No such file or directory: 'tests_cases.json'
+
+  Rows / docs    : 5
+  EN: 5  |  AR: 0
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  2 · INDEXING & STORAGE
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  Embedding dim : 384
+  Float32 index : 0.01 MB  (1536 B/vec)
+  3-bit index   : 0.00 MB  (144 B/vec)
+  Theoretical ratio: 10.7x
+
+  NOTE: RSS Δ = index structure only (embedding cost pre-paid and excluded).
+  Theoretical MB = exact bytes the store needs ignoring OS allocator overhead.
+
+  Store                   Time(s)    docs/s       RSS Δ(MB)   Theory(MB)  Compression
+--------------------------------------------------------------------------------
+  Baseline (InMem)          0.021     236.2             0.0         0.01         1.0x
+  TurboVec (3bit)           0.248      20.1             0.0         0.00        10.7x
+  FAISS (FlatL2)            0.621       8.1             0.0         0.01         1.0x
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  3 · PER-QUERY RESULTS
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  ── Query 01/19 · EN | GI symptoms (acidity + constipation)
+     "I have acidity and constipation, is there something that helps digestion?"
+     Gold: ['alsactil', 'digestion', 'constipation', 'acidity']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.0848  Question: Is Qdrant fast?           |     0.0846  Question: Is Qdrant fast?           |     1.8304  Question: Is Qdrant fast?          
+  2      0.0029  Question: How to use USearch?       |    -0.0066  Question: How to use USearch?       |     1.9941  Question: How to use USearch?      
+  3     -0.0359  Question: Who built TensorFlow?     |    -0.0361  Question: Who built TensorFlow?     |     2.0717  Question: Who built TensorFlow?    
+  4     -0.0412  Question: What is FAISS?            |    -0.0451  Question: What is FAISS?            |     2.0823  Question: What is FAISS?           
+  5     -0.1096  Question: What is vector search?    |    -0.1122  Question: What is vector search?    |     2.2193  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 18.60ms  |  TurboVec (3bit): 22.51ms  |  FAISS (FlatL2): 12.11ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 02/19 · AR | GI symptoms (acidity + constipation)
+     "عندي حموضة وإمساك، هل هناك شيء يساعد على الهضم؟"
+     Gold: ['alsactil', 'الهضم', 'الإمساك', 'الحموضة']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2076  Question: What is FAISS?            |     0.2232  Question: What is FAISS?            |     1.5848  Question: What is FAISS?           
+  2      0.1395  Question: Is Qdrant fast?           |     0.1318  Question: Is Qdrant fast?           |     1.7210  Question: Is Qdrant fast?          
+  3      0.0790  Question: How to use USearch?       |     0.0808  Question: How to use USearch?       |     1.8420  Question: How to use USearch?      
+  4      0.0344  Question: Who built TensorFlow?     |     0.0252  Question: Who built TensorFlow?     |     1.9312  Question: Who built TensorFlow?    
+  5     -0.0319  Question: What is vector search?    |    -0.0387  Question: What is vector search?    |     2.0638  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 17.41ms  |  TurboVec (3bit): 19.90ms  |  FAISS (FlatL2): 16.54ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 03/19 · EN | Iron deficiency in pregnancy
+     "My doctor said I have iron deficiency anemia during pregnancy, what supplement…"
+     Gold: ['amyron', 'iron', 'pregnancy', 'hemoglobin']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.0602  Question: Who built TensorFlow?     |     0.0549  Question: Who built TensorFlow?     |     1.8796  Question: Who built TensorFlow?    
+  2      0.0320  Question: Is Qdrant fast?           |     0.0373  Question: Is Qdrant fast?           |     1.9360  Question: Is Qdrant fast?          
+  3     -0.0394  Question: What is FAISS?            |    -0.0345  Question: How to use USearch?       |     2.0788  Question: What is FAISS?           
+  4     -0.0410  Question: How to use USearch?       |    -0.0395  Question: What is FAISS?            |     2.0820  Question: How to use USearch?      
+  5     -0.0694  Question: What is vector search?    |    -0.0631  Question: What is vector search?    |     2.1387  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 14.38ms  |  TurboVec (3bit): 22.64ms  |  FAISS (FlatL2): 12.47ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 04/19 · AR | Iron deficiency in pregnancy
+     "طبيبتي قالت عندي فقر دم بسبب نقص الحديد وأنا حامل"
+     Gold: ['amyron', 'الحديد', 'الحمل', 'هيموجلوبين']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2893  Question: What is FAISS?            |     0.2961  Question: What is FAISS?            |     1.4215  Question: What is FAISS?           
+  2      0.1805  Question: Is Qdrant fast?           |     0.1641  Question: Is Qdrant fast?           |     1.6391  Question: Is Qdrant fast?          
+  3      0.1431  Question: How to use USearch?       |     0.1498  Question: How to use USearch?       |     1.7138  Question: How to use USearch?      
+  4      0.1260  Question: Who built TensorFlow?     |     0.1161  Question: Who built TensorFlow?     |     1.7480  Question: Who built TensorFlow?    
+  5      0.0351  Question: What is vector search?    |     0.0347  Question: What is vector search?    |     1.9298  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.73ms  |  TurboVec (3bit): 32.59ms  |  FAISS (FlatL2): 15.82ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 05/19 · EN | Acne & blood purification
+     "What can I take to reduce acne and purify my blood naturally?"
+     Gold: ['neemol', 'acne', 'blood', 'skin']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.0375  Question: Is Qdrant fast?           |     0.0505  Question: Is Qdrant fast?           |     1.9251  Question: Is Qdrant fast?          
+  2      0.0134  Question: Who built TensorFlow?     |     0.0145  Question: Who built TensorFlow?     |     1.9732  Question: Who built TensorFlow?    
+  3      0.0045  Question: What is FAISS?            |     0.0016  Question: What is FAISS?            |     1.9910  Question: What is FAISS?           
+  4     -0.0664  Question: What is vector search?    |    -0.0519  Question: What is vector search?    |     2.1328  Question: What is vector search?   
+  5     -0.0716  Question: How to use USearch?       |    -0.0544  Question: How to use USearch?       |     2.1432  Question: How to use USearch?      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 11.43ms  |  TurboVec (3bit): 21.82ms  |  FAISS (FlatL2): 12.92ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 06/19 · AR | Acne & blood purification
+     "أريد علاجًا طبيعيًا لحب الشباب وتنقية الدم"
+     Gold: ['neemol', 'حب الشباب', 'الدم', 'الجلد']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2701  Question: What is FAISS?            |     0.2782  Question: What is FAISS?            |     1.4598  Question: What is FAISS?           
+  2      0.1818  Question: How to use USearch?       |     0.1786  Question: How to use USearch?       |     1.6363  Question: How to use USearch?      
+  3      0.1559  Question: Who built TensorFlow?     |     0.1520  Question: Who built TensorFlow?     |     1.6882  Question: Who built TensorFlow?    
+  4      0.1251  Question: Is Qdrant fast?           |     0.1097  Question: Is Qdrant fast?           |     1.7498  Question: Is Qdrant fast?          
+  5      0.0108  Question: What is vector search?    |     0.0094  Question: What is vector search?    |     1.9784  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 15.04ms  |  TurboVec (3bit): 19.51ms  |  FAISS (FlatL2): 15.45ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 07/19 · EN | Weight gain & muscle
+     "I am underweight and want to gain muscle mass and increase appetite"
+     Gold: ['aswagandhadi', 'weight', 'muscle', 'appetite']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1486  Question: Is Qdrant fast?           |     0.1568  Question: Is Qdrant fast?           |     1.7028  Question: Is Qdrant fast?          
+  2      0.0670  Question: How to use USearch?       |     0.0706  Question: How to use USearch?       |     1.8660  Question: How to use USearch?      
+  3      0.0493  Question: Who built TensorFlow?     |     0.0479  Question: Who built TensorFlow?     |     1.9014  Question: Who built TensorFlow?    
+  4      0.0051  Question: What is vector search?    |     0.0098  Question: What is vector search?    |     1.9898  Question: What is vector search?   
+  5     -0.0215  Question: What is FAISS?            |    -0.0324  Question: What is FAISS?            |     2.0430  Question: What is FAISS?           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.67ms  |  TurboVec (3bit): 15.37ms  |  FAISS (FlatL2): 13.40ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 08/19 · AR | Weight gain & muscle
+     "أنا نحيف وأريد زيادة الوزن وبناء العضلات"
+     Gold: ['aswagandhadi', 'وزن', 'عضل', 'شهية']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2367  Question: What is FAISS?            |     0.2386  Question: What is FAISS?            |     1.5266  Question: What is FAISS?           
+  2      0.2143  Question: How to use USearch?       |     0.2094  Question: How to use USearch?       |     1.5714  Question: How to use USearch?      
+  3      0.1729  Question: Is Qdrant fast?           |     0.1720  Question: Is Qdrant fast?           |     1.6542  Question: Is Qdrant fast?          
+  4      0.1614  Question: Who built TensorFlow?     |     0.1481  Question: Who built TensorFlow?     |     1.6772  Question: Who built TensorFlow?    
+  5      0.1198  Question: What is vector search?    |     0.1240  Question: What is vector search?    |     1.7603  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 17.94ms  |  TurboVec (3bit): 16.36ms  |  FAISS (FlatL2): 16.35ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 09/19 · EN | Pediatric dosage (under 5)
+     "What is the dose of Brihat Vasavaleh for a 4-year-old child?"
+     Gold: ['brihat', 'children', 'dose', '1-2']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2374  Question: Is Qdrant fast?           |     0.2414  Question: Is Qdrant fast?           |     1.5252  Question: Is Qdrant fast?          
+  2      0.1198  Question: What is FAISS?            |     0.1296  Question: What is FAISS?            |     1.7604  Question: What is FAISS?           
+  3      0.0948  Question: How to use USearch?       |     0.0826  Question: How to use USearch?       |     1.8104  Question: How to use USearch?      
+  4     -0.0011  Question: Who built TensorFlow?     |     0.0128  Question: Who built TensorFlow?     |     2.0021  Question: Who built TensorFlow?    
+  5     -0.0964  Question: What is vector search?    |    -0.1052  Question: What is vector search?    |     2.1928  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.87ms  |  TurboVec (3bit): 15.32ms  |  FAISS (FlatL2): 14.15ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 10/19 · AR | Pediatric dosage (under 5)
+     "ما الجرعة المناسبة لطفل عمره 4 سنوات من Brihat Vasavaleh؟"
+     Gold: ['brihat', 'أطفال', 'جرعة', '1-2']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2224  Question: What is FAISS?            |     0.2156  Question: What is FAISS?            |     1.5551  Question: What is FAISS?           
+  2      0.1286  Question: How to use USearch?       |     0.1219  Question: How to use USearch?       |     1.7428  Question: How to use USearch?      
+  3      0.0646  Question: Is Qdrant fast?           |     0.0554  Question: Is Qdrant fast?           |     1.8709  Question: Is Qdrant fast?          
+  4      0.0348  Question: Who built TensorFlow?     |     0.0351  Question: Who built TensorFlow?     |     1.9303  Question: Who built TensorFlow?    
+  5     -0.0460  Question: What is vector search?    |    -0.0468  Question: What is vector search?    |     2.0921  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 17.57ms  |  TurboVec (3bit): 17.04ms  |  FAISS (FlatL2): 16.13ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 11/19 · EN | Paraphrase — Triphala allergy
+     "Which herbal tablet is not suitable for people allergic to Triphala?"
+     Gold: ['alsactil', 'triphala', 'allerg']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1747  Question: Is Qdrant fast?           |     0.1854  Question: Is Qdrant fast?           |     1.6506  Question: Is Qdrant fast?          
+  2      0.0420  Question: How to use USearch?       |     0.0445  Question: How to use USearch?       |     1.9160  Question: How to use USearch?      
+  3      0.0302  Question: Who built TensorFlow?     |     0.0431  Question: Who built TensorFlow?     |     1.9396  Question: Who built TensorFlow?    
+  4     -0.0086  Question: What is FAISS?            |    -0.0024  Question: What is FAISS?            |     2.0172  Question: What is FAISS?           
+  5     -0.0755  Question: What is vector search?    |    -0.0773  Question: What is vector search?    |     2.1510  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 12.12ms  |  TurboVec (3bit): 14.91ms  |  FAISS (FlatL2): 13.23ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 12/19 · EN | Paraphrase — tablet form
+     "Can I chew the Ayurvedic tablets or do I need to swallow them whole?"
+     Gold: ['alsactil', 'chew', 'crush', 'powder']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1544  Question: Is Qdrant fast?           |     0.1574  Question: Is Qdrant fast?           |     1.6912  Question: Is Qdrant fast?          
+  2     -0.0016  Question: How to use USearch?       |     0.0041  Question: How to use USearch?       |     2.0032  Question: How to use USearch?      
+  3     -0.0412  Question: Who built TensorFlow?     |    -0.0568  Question: Who built TensorFlow?     |     2.0825  Question: Who built TensorFlow?    
+  4     -0.0684  Question: What is vector search?    |    -0.0643  Question: What is vector search?    |     2.1369  Question: What is vector search?   
+  5     -0.0698  Question: What is FAISS?            |    -0.0744  Question: What is FAISS?            |     2.1396  Question: What is FAISS?           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 12.28ms  |  TurboVec (3bit): 13.24ms  |  FAISS (FlatL2): 13.75ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 13/19 · EN | Negation — pregnancy contraindication
+     "Is there any Ayurvedic product that should NOT be taken during pregnancy?"
+     Gold: ['rasna', 'neemol', 'pregnancy', 'avoid']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1635  Question: Is Qdrant fast?           |     0.1676  Question: Is Qdrant fast?           |     1.6731  Question: Is Qdrant fast?          
+  2      0.0364  Question: What is FAISS?            |     0.0532  Question: What is FAISS?            |     1.9273  Question: What is FAISS?           
+  3      0.0257  Question: Who built TensorFlow?     |     0.0175  Question: Who built TensorFlow?     |     1.9486  Question: Who built TensorFlow?    
+  4     -0.0684  Question: How to use USearch?       |    -0.0757  Question: How to use USearch?       |     2.1369  Question: How to use USearch?      
+  5     -0.1115  Question: What is vector search?    |    -0.1092  Question: What is vector search?    |     2.2230  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 14.63ms  |  TurboVec (3bit): 14.63ms  |  FAISS (FlatL2): 12.68ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 14/19 · EN | Negation — sugar / diabetics
+     "Which products contain sugar and are therefore unsafe for diabetics?"
+     Gold: ['aswagandhadi', 'ashwagandha avaleha', 'sugar', 'diabetic']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.0699  Question: Is Qdrant fast?           |     0.0850  Question: Is Qdrant fast?           |     1.8601  Question: Is Qdrant fast?          
+  2      0.0050  Question: How to use USearch?       |    -0.0009  Question: How to use USearch?       |     1.9900  Question: How to use USearch?      
+  3     -0.0057  Question: What is FAISS?            |    -0.0081  Question: What is FAISS?            |     2.0113  Question: What is FAISS?           
+  4     -0.0211  Question: What is vector search?    |    -0.0227  Question: What is vector search?    |     2.0421  Question: What is vector search?   
+  5     -0.0332  Question: Who built TensorFlow?     |    -0.0320  Question: Who built TensorFlow?     |     2.0664  Question: Who built TensorFlow?    
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.90ms  |  TurboVec (3bit): 13.01ms  |  FAISS (FlatL2): 12.33ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 15/19 · EN | Insulin resistance management
+     "What should I eat or change in my diet if I have insulin resistance?"
+     Gold: ['insulin', 'diet', 'exercise', 'diabetes']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1332  Question: Is Qdrant fast?           |     0.1474  Question: Is Qdrant fast?           |     1.7336  Question: Is Qdrant fast?          
+  2      0.0105  Question: How to use USearch?       |     0.0168  Question: How to use USearch?       |     1.9789  Question: How to use USearch?      
+  3     -0.0181  Question: What is FAISS?            |    -0.0282  Question: What is FAISS?            |     2.0362  Question: What is FAISS?           
+  4     -0.0441  Question: Who built TensorFlow?     |    -0.0476  Question: Who built TensorFlow?     |     2.0883  Question: Who built TensorFlow?    
+  5     -0.0795  Question: What is vector search?    |    -0.0755  Question: What is vector search?    |     2.1589  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 14.37ms  |  TurboVec (3bit): 15.02ms  |  FAISS (FlatL2): 13.76ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 16/19 · AR | Insulin resistance management
+     "ماذا أفعل إذا كان عندي مقاومة للأنسولين؟"
+     Gold: ['insulin', 'إنسولين', 'نظام', 'غذائي']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1852  Question: What is FAISS?            |     0.1767  Question: What is FAISS?            |     1.6296  Question: What is FAISS?           
+  2      0.1467  Question: How to use USearch?       |     0.1567  Question: How to use USearch?       |     1.7067  Question: How to use USearch?      
+  3      0.0519  Question: Who built TensorFlow?     |     0.0464  Question: Who built TensorFlow?     |     1.8962  Question: Who built TensorFlow?    
+  4      0.0355  Question: Is Qdrant fast?           |     0.0362  Question: What is vector search?    |     1.9291  Question: Is Qdrant fast?          
+  5      0.0290  Question: What is vector search?    |     0.0275  Question: Is Qdrant fast?           |     1.9420  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.33ms  |  TurboVec (3bit): 17.35ms  |  FAISS (FlatL2): 13.41ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 17/19 · EN | Credential lookup
+     "How many years of clinical experience does the Mumbai nutritionist have?"
+     Gold: ['sayantani', '21', '22', 'mumbai']
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.2751  Question: Is Qdrant fast?           |     0.2845  Question: Is Qdrant fast?           |     1.4499  Question: Is Qdrant fast?          
+  2      0.1600  Question: Who built TensorFlow?     |     0.1642  Question: Who built TensorFlow?     |     1.6801  Question: Who built TensorFlow?    
+  3      0.0901  Question: What is FAISS?            |     0.1014  Question: What is FAISS?            |     1.8198  Question: What is FAISS?           
+  4      0.0199  Question: What is vector search?    |     0.0287  Question: What is vector search?    |     1.9602  Question: What is vector search?   
+  5     -0.0068  Question: How to use USearch?       |    -0.0189  Question: How to use USearch?       |     2.0136  Question: How to use USearch?      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.15ms  |  TurboVec (3bit): 14.87ms  |  FAISS (FlatL2): 17.20ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 18/19 · EN | Out-of-domain (chemistry)
+     "What is the boiling point of sulfuric acid?"
+     Gold: (none — OOD)
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1200  Question: What is FAISS?            |     0.1226  Question: What is FAISS?            |     1.7601  Question: What is FAISS?           
+  2      0.0460  Question: Is Qdrant fast?           |     0.0400  Question: Is Qdrant fast?           |     1.9081  Question: Is Qdrant fast?          
+  3      0.0097  Question: What is vector search?    |     0.0183  Question: What is vector search?    |     1.9805  Question: What is vector search?   
+  4      0.0061  Question: Who built TensorFlow?     |     0.0086  Question: Who built TensorFlow?     |     1.9878  Question: Who built TensorFlow?    
+  5     -0.0076  Question: How to use USearch?       |    -0.0106  Question: How to use USearch?       |     2.0152  Question: How to use USearch?      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 12.84ms  |  TurboVec (3bit): 17.17ms  |  FAISS (FlatL2): 15.19ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+
+  ── Query 19/19 · EN | Out-of-domain (sports)
+     "Tell me the latest football scores from last weekend"
+     Gold: (none — OOD)
+
+  Baseline (InMem)        score  snippet                             | TurboVec (3bit)         score  snippet                             | FAISS (FlatL2)          score  snippet                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  1      0.1027  Question: Is Qdrant fast?           |     0.1079  Question: Is Qdrant fast?           |     1.7947  Question: Is Qdrant fast?          
+  2      0.0724  Question: What is FAISS?            |     0.0695  Question: What is FAISS?            |     1.8553  Question: What is FAISS?           
+  3      0.0460  Question: How to use USearch?       |     0.0603  Question: How to use USearch?       |     1.9079  Question: How to use USearch?      
+  4      0.0350  Question: Who built TensorFlow?     |     0.0455  Question: Who built TensorFlow?     |     1.9300  Question: Who built TensorFlow?    
+  5      0.0119  Question: What is vector search?    |    -0.0093  Question: What is vector search?    |     1.9763  Question: What is vector search?   
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  Latency (avg ms): Baseline (InMem): 13.25ms  |  TurboVec (3bit): 18.49ms  |  FAISS (FlatL2): 13.73ms
+  Baseline (InMem)        R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  TurboVec (3bit)         R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+  FAISS (FlatL2)          R@1=0.00 R@3=0.00 R@5=0.00  P@1=0.00 P@3=0.00 P@5=0.00
+══════════════════════════════════════════════════════════════════════════════════════════
+  4 · AGGREGATE SUMMARY
+══════════════════════════════════════════════════════════════════════════════════════════
+
+  Metric                               Baseline (InMem)   TurboVec (3bit)    FAISS (FlatL2)        Winner
+--------------------------------------------------------------------------------------------------
+  Avg latency (ms)                              14.3962           17.9874           14.2440  FAISS (FlatL2)
+  P95 latency (ms)                              18.7335           29.4018           17.2155  FAISS (FlatL2)
+  Latency std (ms)                               2.4747            6.0396            1.8867  FAISS (FlatL2)
+  Recall@1 (avg)                                 0.0000            0.0000            0.0000  Baseline (InMem)
+  Recall@3 (avg)                                 0.0000            0.0000            0.0000  Baseline (InMem)
+  Recall@5 (avg)                                 0.0000            0.0000            0.0000  Baseline (InMem)
+  Precision@1 (avg)                              0.0000            0.0000            0.0000  Baseline (InMem)
+  Precision@3 (avg)                              0.0000            0.0000            0.0000  Baseline (InMem)
+  Precision@5 (avg)                              0.0000            0.0000            0.0000  Baseline (InMem)
+  Avg top-1 score                                0.1670            0.1723            1.6660  FAISS (FlatL2)
+  Avg score gap (1-2)                            0.0830            0.0881           -0.1659  TurboVec (3bit)
+--------------------------------------------------------------------------------------------------
+  Index time (s)                                 0.0212            0.2484            0.6207  Baseline (InMem)
+  Indexing d/s                                 236.1532           20.1249            8.0556  Baseline (InMem)
+  RSS delta (MB) [*]                             0.0000            0.0000            0.0000  Baseline (InMem)
+  Theoretical MB [*]                             0.0077            0.0007            0.0077  TurboVec (3bit)
+  Compression vs baseline [*]                      1.00             10.67              1.00  TurboVec (3bit)
+  [*] RSS Δ = index struct only (embedding excluded). Theoretical = exact math, no allocator noise.
+--------------------------------------------------------------------------------------------------
+  vs Baseline — TurboVec (3bit)       Top-1: 1.00  Top-3: 0.98  Top-5: 1.00  Kendall τ: +0.9789
+  vs Baseline — FAISS (FlatL2)        Top-1: 1.00  Top-3: 1.00  Top-5: 1.00  Kendall τ: +1.0000
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  5 · AGGREGATE SIMILARITY vs Baseline
+──────────────────────────────────────────────────────────────────────────────────────────
+
+  ╔══ TurboVec (3bit) ══════════════════════════════════════════════════╗
+  ║    Result-set Jaccard         100.0%  [███████████████████████████████████]
+  ║    Top-1 token overlap        100.0%  [███████████████████████████████████]
+  ║    TF-IDF cosine               96.7%  [██████████████████████████████████░]
+  ║    Score correlation           99.3%  [███████████████████████████████████]
+  ║    Rank position acc.          98.9%  [███████████████████████████████████]
+  ║  ★ ★ OVERALL                   99.0%  [███████████████████████████████████]
+  ╚══ Grand overall: 99.0%  Verdict: VERY HIGH ════════════════════╝
+
+  ╔══ FAISS (FlatL2) ══════════════════════════════════════════════════╗
+  ║    Result-set Jaccard         100.0%  [███████████████████████████████████]
+  ║    Top-1 token overlap        100.0%  [███████████████████████████████████]
+  ║    TF-IDF cosine              100.0%  [███████████████████████████████████]
+  ║    Score correlation            0.0%  [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]
+  ║    Rank position acc.         100.0%  [███████████████████████████████████]
+  ║  ★ ★ OVERALL                   80.0%  [████████████████████████████░░░░░░░]
+  ╚══ Grand overall: 80.0%  Verdict: HIGH ════════════════════╝
+══════════════════════════════════════════════════════════════════════════════════════════

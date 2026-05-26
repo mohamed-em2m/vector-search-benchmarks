@@ -2,6 +2,10 @@
 
 A multi-scale, modular benchmarking suite for evaluating different vector search stores and algorithms.
 
+<img src="./assets/thumbnail.gif" alt="Logo">
+
+
+
 ## Overview
 
 This project provides an orchestration framework to test and compare multiple vector databases and search libraries across different sample sizes (e.g., 500, 5k, 50k, 500k). It isolates runs in individual subprocesses and evaluates each store on:
