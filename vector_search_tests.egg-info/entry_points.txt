@@ -1,3 +1,0 @@
-[console_scripts]
-benchmark = run_benchmark:main
-run_all = run_all:main
