@@ -39,37 +39,37 @@ import stores.usearch_store
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
-SAMPLE_SIZES  = [500, 5000, 50000, 500000]
-OUTPUT_DIR    = "./results"
-SKIP_EXISTING = False   # set True to resume interrupted runs
+SAMPLE_SIZES = [500, 5000, 50000, 500000]
+OUTPUT_DIR = "./results"
+SKIP_EXISTING = False  # set True to resume interrupted runs
 
 # Metrics to pull from each summary_N.json, with (display_label, prefer)
 METRIC_DEFS = [
     # ── Speed ──────────────────────────────────────────────────────────────
-    ("Avg latency (ms)",         "Avg latency (ms)",       "lower"),
-    ("P95 latency (ms)",         "P95 latency (ms)",       "lower"),
-    ("Index time (s)",           "Index time (s)",         "lower"),
-    ("Indexing d/s",             "Indexing d/s",           "higher"),
+    ("Avg latency (ms)", "Avg latency (ms)", "lower"),
+    ("P95 latency (ms)", "P95 latency (ms)", "lower"),
+    ("Index time (s)", "Index time (s)", "lower"),
+    ("Indexing d/s", "Indexing d/s", "higher"),
     # ── Memory ─────────────────────────────────────────────────────────────
-    ("RSS delta (MB) [*]",       "RSS delta (MB) [*]",     "lower"),
-    ("Memray Peak (MB)",         "Memray Peak (MB)",       "lower"),
-    ("Theoretical MB [*]",       "Theoretical MB [*]",     "lower"),
-    ("Compression vs baseline",  "Compression vs baseline","higher"),
+    ("RSS delta (MB) [*]", "RSS delta (MB) [*]", "lower"),
+    ("Memray Peak (MB)", "Memray Peak (MB)", "lower"),
+    ("Theoretical MB [*]", "Theoretical MB [*]", "lower"),
+    ("Compression vs baseline", "Compression vs baseline", "higher"),
     # ── Quality ────────────────────────────────────────────────────────────
-    ("Recall@1 (avg)",           "Recall@1 (avg)",         "higher"),
-    ("Recall@3 (avg)",           "Recall@3 (avg)",         "higher"),
-    ("Recall@5 (avg)",           "Recall@5 (avg)",         "higher"),
-    ("Precision@1 (avg)",        "Precision@1 (avg)",      "higher"),
-    ("Precision@3 (avg)",        "Precision@3 (avg)",      "higher"),
-    ("Precision@5 (avg)",        "Precision@5 (avg)",      "higher"),
+    ("Recall@1 (avg)", "Recall@1 (avg)", "higher"),
+    ("Recall@3 (avg)", "Recall@3 (avg)", "higher"),
+    ("Recall@5 (avg)", "Recall@5 (avg)", "higher"),
+    ("Precision@1 (avg)", "Precision@1 (avg)", "higher"),
+    ("Precision@3 (avg)", "Precision@3 (avg)", "higher"),
+    ("Precision@5 (avg)", "Precision@5 (avg)", "higher"),
     # ── Agreement vs Baseline ──────────────────────────────────────────────
-    ("top1_match_rate",          "Top-1 match rate",       "higher"),
-    ("top3_overlap_rate",        "Top-3 overlap rate",     "higher"),
-    ("top5_overlap_rate",        "Top-5 overlap rate",     "higher"),
-    ("kendall_tau",              "Kendall τ (rank corr.)", "higher"),
+    ("top1_match_rate", "Top-1 match rate", "higher"),
+    ("top3_overlap_rate", "Top-3 overlap rate", "higher"),
+    ("top5_overlap_rate", "Top-5 overlap rate", "higher"),
+    ("kendall_tau", "Kendall τ (rank corr.)", "higher"),
     # ── Similarity vs Baseline ─────────────────────────────────────────────
-    ("sim_result_set_jaccard_%", "Sim: result Jaccard %",  "higher"),
-    ("sim_overall_similarity_%", "Sim: overall %",         "higher"),
+    ("sim_result_set_jaccard_%", "Sim: result Jaccard %", "higher"),
+    ("sim_overall_similarity_%", "Sim: overall %", "higher"),
 ]
 
 
@@ -77,9 +77,23 @@ METRIC_DEFS = [
 # HELPERS
 # ─────────────────────────────────────────────
 
-def sep(char="-", width=100): print(char * width)
-def header(t): sep("="); print(f"  {t}"); sep("=")
-def section(t): print(); sep(); print(f"  {t}"); sep()
+
+def sep(char="-", width=100):
+    print(char * width)
+
+
+def header(t):
+    sep("=")
+    print(f"  {t}")
+    sep("=")
+
+
+def section(t):
+    print()
+    sep()
+    print(f"  {t}")
+    sep()
+
 
 def fmt(v):
     if v is None or (isinstance(v, float) and math.isnan(v)):
@@ -106,7 +120,11 @@ def load_summary(path: str) -> dict | None:
 
 def highlight_winner(vals: dict, prefer: str) -> str:
     """Return store name with best value, or '—'."""
-    valid = {k: v for k, v in vals.items() if v is not None and not (isinstance(v, float) and math.isnan(v))}
+    valid = {
+        k: v
+        for k, v in vals.items()
+        if v is not None and not (isinstance(v, float) and math.isnan(v))
+    }
     if not valid:
         return "—"
     fn = min if prefer == "lower" else max
@@ -116,6 +134,7 @@ def highlight_winner(vals: dict, prefer: str) -> str:
 # ─────────────────────────────────────────────
 # STEP 1: RUN BENCHMARKS
 # ─────────────────────────────────────────────
+
 
 def run_all_benchmarks(dataset_path: str = None, use_memray: bool = False):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -128,23 +147,35 @@ def run_all_benchmarks(dataset_path: str = None, use_memray: bool = False):
             print(f"\n  [SKIP] {n:,} samples — results already exist ({txt_path})")
             continue
 
-        print(f"\n{'═'*80}")
+        print(f"\n{'═' * 80}")
         print(f"  RUNNING benchmark for {n:,} samples …")
-        print(f"{'═'*80}\n")
+        print(f"{'═' * 80}\n")
 
-        cmd = [python, "run_benchmark.py", "--samples", str(n), "--output-dir", OUTPUT_DIR]
+        cmd = [
+            python,
+            "run_benchmark.py",
+            "--samples",
+            str(n),
+            "--output-dir",
+            OUTPUT_DIR,
+        ]
         if dataset_path:
             cmd.extend(["--dataset", dataset_path])
         if use_memray:
             cmd.append("--memray")
-        ret = subprocess.run(cmd)   # inherits stdout/stderr → prints live + captured by run_benchmark
+        ret = subprocess.run(
+            cmd
+        )  # inherits stdout/stderr → prints live + captured by run_benchmark
         if ret.returncode != 0:
-            print(f"\n  [WARN] run_benchmark.py exited with code {ret.returncode} for n={n:,}")
+            print(
+                f"\n  [WARN] run_benchmark.py exited with code {ret.returncode} for n={n:,}"
+            )
 
 
 # ─────────────────────────────────────────────
 # STEP 2: LOAD ALL SUMMARIES
 # ─────────────────────────────────────────────
+
 
 def load_all_summaries() -> dict[int, dict]:
     summaries = {}
@@ -161,6 +192,7 @@ def load_all_summaries() -> dict[int, dict]:
 # ─────────────────────────────────────────────
 # STEP 3: BUILD COMPARISON REPORT
 # ─────────────────────────────────────────────
+
 
 def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     # Collect all store names seen across any run
@@ -181,13 +213,25 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         print(text, **kwargs)
         lines.append(text)
 
-    def pr_sep(char="─", width=100): pr(char * width)
-    def pr_hdr(t): pr_sep("═"); pr(f"  {t}"); pr_sep("═")
-    def pr_sec(t): pr(); pr_sep(); pr(f"  {t}"); pr_sep()
+    def pr_sep(char="─", width=100):
+        pr(char * width)
+
+    def pr_hdr(t):
+        pr_sep("═")
+        pr(f"  {t}")
+        pr_sep("═")
+
+    def pr_sec(t):
+        pr()
+        pr_sep()
+        pr(f"  {t}")
+        pr_sep()
 
     pr_hdr("AGGREGATE CROSS-SAMPLE COMPARISON")
     pr(f"  Sample sizes : {', '.join(f'{n:,}' for n in sizes_available)}")
-    pr(f"  Stores       : {', '.join(VectorStoreRegistry.get_display_name(s) for s in all_stores)}")
+    pr(
+        f"  Stores       : {', '.join(VectorStoreRegistry.get_display_name(s) for s in all_stores)}"
+    )
     pr(f"  Metrics      : {len(METRIC_DEFS)}")
 
     # ── Section per store: metric × sample-size table ─────────
@@ -231,7 +275,9 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         pr(f"\n  ┌─ {metric_label}  (prefer {prefer}) {'─' * 45}┐")
 
         col = 14
-        store_header = "  ".join(f"{VectorStoreRegistry.get_display_name(s):>{col}}" for s in all_stores)
+        store_header = "  ".join(
+            f"{VectorStoreRegistry.get_display_name(s):>{col}}" for s in all_stores
+        )
         pr(f"  │ {'Samples':>10}  {store_header}  {'Winner':>16}")
         pr_sep("-", 10 + col * len(all_stores) + 22)
 
@@ -239,10 +285,12 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
             s = summaries.get(n, {})
             vals = {}
             for store_name in all_stores:
-                vals[store_name] = s.get("stores", {}).get(store_name, {}).get(metric_key)
+                vals[store_name] = (
+                    s.get("stores", {}).get(store_name, {}).get(metric_key)
+                )
 
             val_str = "  ".join(f"{fmt(vals[sn]):>{col}}" for sn in all_stores)
-            winner  = highlight_winner(vals, prefer)
+            winner = highlight_winner(vals, prefer)
             winner_label = VectorStoreRegistry.get_display_name(winner)
             pr(f"  │ {n:>10,}  {val_str}  {winner_label:>16}")
 
@@ -256,23 +304,23 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         for sn in all_stores
     }
     CATEGORY = {
-        "Avg latency (ms)":     "speed",
-        "P95 latency (ms)":     "speed",
-        "Index time (s)":       "speed",
-        "Indexing d/s":         "speed",
-        "RSS delta (MB) [*]":   "memory",
-        "RSS delta (MB)":       "memory",
-        "Memray Peak (MB)":     "memory",
-        "Recall@1 (avg)":       "quality",
-        "Recall@3 (avg)":       "quality",
-        "Recall@5 (avg)":       "quality",
-        "Precision@1 (avg)":    "quality",
-        "Precision@3 (avg)":    "quality",
-        "Precision@5 (avg)":    "quality",
-        "top1_match_rate":      "agreement",
-        "top3_overlap_rate":    "agreement",
-        "top5_overlap_rate":    "agreement",
-        "kendall_tau":          "agreement",
+        "Avg latency (ms)": "speed",
+        "P95 latency (ms)": "speed",
+        "Index time (s)": "speed",
+        "Indexing d/s": "speed",
+        "RSS delta (MB) [*]": "memory",
+        "RSS delta (MB)": "memory",
+        "Memray Peak (MB)": "memory",
+        "Recall@1 (avg)": "quality",
+        "Recall@3 (avg)": "quality",
+        "Recall@5 (avg)": "quality",
+        "Precision@1 (avg)": "quality",
+        "Precision@3 (avg)": "quality",
+        "Precision@5 (avg)": "quality",
+        "top1_match_rate": "agreement",
+        "top3_overlap_rate": "agreement",
+        "top5_overlap_rate": "agreement",
+        "kendall_tau": "agreement",
         "sim_result_set_jaccard_%": "agreement",
         "sim_overall_similarity_%": "agreement",
     }
@@ -289,18 +337,26 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
                 cat = CATEGORY.get(metric_key, "other")
                 win_counts[winner][cat] = win_counts[winner].get(cat, 0) + 1
 
-    pr(f"\n  {'Store':<22} {'Total':>6} {'Speed':>6} {'Quality':>8} {'Memory':>8} {'Agreement':>10}")
+    pr(
+        f"\n  {'Store':<22} {'Total':>6} {'Speed':>6} {'Quality':>8} {'Memory':>8} {'Agreement':>10}"
+    )
     pr_sep("-", 65)
     for sn in all_stores:
         wc = win_counts[sn]
         label = VectorStoreRegistry.get_display_name(sn)
-        pr(f"  {label:<22} {wc['total']:>6} {wc.get('speed',0):>6} "
-           f"{wc.get('quality',0):>8} {wc.get('memory',0):>8} {wc.get('agreement',0):>10}")
+        pr(
+            f"  {label:<22} {wc['total']:>6} {wc.get('speed', 0):>6} "
+            f"{wc.get('quality', 0):>8} {wc.get('memory', 0):>8} {wc.get('agreement', 0):>10}"
+        )
 
     # ── Scale-effect summary ───────────────────────────────────
     pr_sec("D · SCALE EFFECTS  (how each store's avg latency changes with N)")
 
-    pr(f"\n  {'Store':<22} " + "  ".join(f"{n:>10,}" for n in sizes_available) + "  trend")
+    pr(
+        f"\n  {'Store':<22} "
+        + "  ".join(f"{n:>10,}" for n in sizes_available)
+        + "  trend"
+    )
     pr_sep("-", 22 + 12 * len(sizes_available) + 10)
 
     for sn in all_stores:
@@ -314,7 +370,11 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         # Trend: ratio last/first (only when both exist)
         valid_lats = [(n, v) for n, v in zip(sizes_available, lats) if v is not None]
         if len(valid_lats) >= 2:
-            ratio = valid_lats[-1][1] / valid_lats[0][1] if valid_lats[0][1] else float("nan")
+            ratio = (
+                valid_lats[-1][1] / valid_lats[0][1]
+                if valid_lats[0][1]
+                else float("nan")
+            )
             trend = f"  {ratio:.1f}x slower at {valid_lats[-1][0]:,} vs {valid_lats[0][0]:,}"
         else:
             trend = ""
@@ -333,7 +393,9 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
     comparison_data = {
         "sample_sizes": sizes_available,
         "stores": all_stores,
-        "store_display": {sn: VectorStoreRegistry.get_display_name(sn) for sn in all_stores},
+        "store_display": {
+            sn: VectorStoreRegistry.get_display_name(sn) for sn in all_stores
+        },
         "win_counts": win_counts,
         "per_store_per_metric": {},
     }
@@ -341,7 +403,10 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         comparison_data["per_store_per_metric"][sn] = {}
         for metric_key, metric_label, prefer in METRIC_DEFS:
             comparison_data["per_store_per_metric"][sn][metric_label] = {
-                str(n): summaries.get(n, {}).get("stores", {}).get(sn, {}).get(metric_key)
+                str(n): summaries.get(n, {})
+                .get("stores", {})
+                .get(sn, {})
+                .get(metric_key)
                 for n in sizes_available
             }
 
@@ -353,10 +418,16 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
 # MAIN
 # ─────────────────────────────────────────────
 
+
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Multi-scale vector store benchmark orchestrator")
-    parser.add_argument("--dataset", type=str, default=None, help="Path to the input CSV dataset")
+
+    parser = argparse.ArgumentParser(
+        description="Multi-scale vector store benchmark orchestrator"
+    )
+    parser.add_argument(
+        "--dataset", type=str, default=None, help="Path to the input CSV dataset"
+    )
     parser.add_argument(
         "--memray",
         action="store_true",
@@ -397,11 +468,13 @@ def main():
     if not summaries:
         print("  No summaries found. Exiting.")
         return
-    print(f"  Loaded summaries for: {', '.join(f'{n:,}' for n in sorted(summaries.keys()))}")
+    print(
+        f"  Loaded summaries for: {', '.join(f'{n:,}' for n in sorted(summaries.keys()))}"
+    )
 
     # Step 3 — Build comparison
     section("PHASE 3 · BUILDING CROSS-SAMPLE COMPARISON")
-    out_txt  = os.path.join(OUTPUT_DIR, "aggregate_comparison.txt")
+    out_txt = os.path.join(OUTPUT_DIR, "aggregate_comparison.txt")
     out_json = os.path.join(OUTPUT_DIR, "aggregate_comparison.json")
     build_comparison(summaries, out_txt, out_json)
     print(f"\n  [SAVED] {out_txt}")
