@@ -42,10 +42,11 @@ class QdrantStore(AbstractVectorStore):
         )
 
         precomputed = vecs.tolist()
+        text_to_vec = {t: v for t, v in zip(texts, precomputed)}
 
         class MockEmbed(Embeddings):
             def embed_documents(self, t):
-                return precomputed
+                return [text_to_vec.get(x) or embeddings.embed_query(x) for x in t]
 
             def embed_query(self, q):
                 return embeddings.embed_query(q)  # real embeddings for queries

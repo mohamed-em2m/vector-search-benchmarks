@@ -31,8 +31,10 @@ class USearchStore(AbstractVectorStore):
             docstore=InMemoryDocstore(),
             ids=[]
         )
+        precomputed = vecs.tolist()
+        text_to_vec = {t: v for t, v in zip(texts, precomputed)}
         class MockEmbed(Embeddings):
-            def embed_documents(self, t): return vecs.tolist()
+            def embed_documents(self, t): return [text_to_vec.get(x) or embeddings.embed_query(x) for x in t]
             def embed_query(self, q): return embeddings.embed_query(q)
         
         instance.store.embedding = MockEmbed()
