@@ -25,10 +25,17 @@ from langchain_core.documents import Document
 
 from core.registry import VectorStoreRegistry
 from core.metrics import (
-    is_relevant, recall_at_k, precision_at_k, score_stats, 
-    kendall_tau, jaccard_similarity, token_overlap_pct, 
-    tfidf_cosine_similarity, score_scale_similarity, 
-    rank_position_similarity, compute_similarity_report
+    is_relevant,
+    recall_at_k,
+    precision_at_k,
+    score_stats,
+    kendall_tau,
+    jaccard_similarity,
+    token_overlap_pct,
+    tfidf_cosine_similarity,
+    score_scale_similarity,
+    rank_position_similarity,
+    compute_similarity_report,
 )
 from reporting.tee import Tee, snippet, sep, header, section
 
@@ -37,7 +44,7 @@ import stores.turbovec_store
 import stores.faiss_store
 import stores.qdrant_store
 import stores.usearch_store
-
+from tests_cases import TEST_QUERIES
 
 # ── STATIC CONFIG
 CSV_PATH = None  # Set via --dataset CLI arg; no hardcoded default
@@ -46,104 +53,6 @@ BIT_WIDTH = 3
 TOP_K = 5
 N_TIMING_REPEATS = 5
 
-
-TEST_QUERIES = [
-    (
-        "I have acidity and constipation, is there something that helps digestion?",
-        ["alsactil", "digestion", "constipation", "acidity"],
-        "EN | GI symptoms (acidity + constipation)",
-    ),
-    (
-        "عندي حموضة وإمساك، هل هناك شيء يساعد على الهضم؟",
-        ["alsactil", "الهضم", "الإمساك", "الحموضة"],
-        "AR | GI symptoms (acidity + constipation)",
-    ),
-    (
-        "My doctor said I have iron deficiency anemia during pregnancy, what supplement should I take?",
-        ["amyron", "iron", "pregnancy", "hemoglobin"],
-        "EN | Iron deficiency in pregnancy",
-    ),
-    (
-        "طبيبتي قالت عندي فقر دم بسبب نقص الحديد وأنا حامل",
-        ["amyron", "الحديد", "الحمل", "هيموجلوبين"],
-        "AR | Iron deficiency in pregnancy",
-    ),
-    (
-        "What can I take to reduce acne and purify my blood naturally?",
-        ["neemol", "acne", "blood", "skin"],
-        "EN | Acne & blood purification",
-    ),
-    (
-        "أريد علاجًا طبيعيًا لحب الشباب وتنقية الدم",
-        ["neemol", "حب الشباب", "الدم", "الجلد"],
-        "AR | Acne & blood purification",
-    ),
-    (
-        "I am underweight and want to gain muscle mass and increase appetite",
-        ["aswagandhadi", "weight", "muscle", "appetite"],
-        "EN | Weight gain & muscle",
-    ),
-    (
-        "أنا نحيف وأريد زيادة الوزن وبناء العضلات",
-        ["aswagandhadi", "وزن", "عضل", "شهية"],
-        "AR | Weight gain & muscle",
-    ),
-    (
-        "What is the dose of Brihat Vasavaleh for a 4-year-old child?",
-        ["brihat", "children", "dose", "1-2"],
-        "EN | Pediatric dosage (under 5)",
-    ),
-    (
-        "ما الجرعة المناسبة لطفل عمره 4 سنوات من Brihat Vasavaleh؟",
-        ["brihat", "أطفال", "جرعة", "1-2"],
-        "AR | Pediatric dosage (under 5)",
-    ),
-    (
-        "Which herbal tablet is not suitable for people allergic to Triphala?",
-        ["alsactil", "triphala", "allerg"],
-        "EN | Paraphrase — Triphala allergy",
-    ),
-    (
-        "Can I chew the Ayurvedic tablets or do I need to swallow them whole?",
-        ["alsactil", "chew", "crush", "powder"],
-        "EN | Paraphrase — tablet form",
-    ),
-    (
-        "Is there any Ayurvedic product that should NOT be taken during pregnancy?",
-        ["rasna", "neemol", "pregnancy", "avoid"],
-        "EN | Negation — pregnancy contraindication",
-    ),
-    (
-        "Which products contain sugar and are therefore unsafe for diabetics?",
-        ["aswagandhadi", "ashwagandha avaleha", "sugar", "diabetic"],
-        "EN | Negation — sugar / diabetics",
-    ),
-    (
-        "What should I eat or change in my diet if I have insulin resistance?",
-        ["insulin", "diet", "exercise", "diabetes"],
-        "EN | Insulin resistance management",
-    ),
-    (
-        "ماذا أفعل إذا كان عندي مقاومة للأنسولين؟",
-        ["insulin", "إنسولين", "نظام", "غذائي"],
-        "AR | Insulin resistance management",
-    ),
-    (
-        "How many years of clinical experience does the Mumbai nutritionist have?",
-        ["sayantani", "21", "22", "mumbai"],
-        "EN | Credential lookup",
-    ),
-    (
-        "What is the boiling point of sulfuric acid?",
-        [],
-        "EN | Out-of-domain (chemistry)",
-    ),
-    (
-        "Tell me the latest football scores from last weekend",
-        [],
-        "EN | Out-of-domain (sports)",
-    ),
-]
 
 # ─────────────────────────────────────────────
 # HELPERS
@@ -256,7 +165,6 @@ def quantized_bytes_per_vector(dim: int, bit_width: int) -> int:
     return (dim * bit_width + 7) // 8
 
 
-
 def sanitize(obj):
     if isinstance(obj, np.floating):
         v = float(obj)
@@ -301,7 +209,7 @@ def time_search(store, query, k, repeats):
 # ─────────────────────────────────────────────
 
 
-def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path: str):
+def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path: str, use_memray: bool = False):
     """
     Worker mode: Run only a single store in this fresh process, measure metrics,
     and save them to a temporary JSON file.
@@ -343,15 +251,56 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
     time.sleep(0.3)
     rss_start = rss_mb()
 
-    # Track memory during build using background thread
-    tracker = MemoryTracker()
-    tracker.start()
+    memray_peak_mb = None
+    if use_memray:
+        import memray
+        bin_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.bin")
+        if os.path.exists(bin_path):
+            try:
+                os.remove(bin_path)
+            except Exception:
+                pass
 
-    t0 = time.perf_counter()
-    store = store_cls.build(docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH)
-    elapsed = time.perf_counter() - t0
+        t0 = time.perf_counter()
+        with memray.Tracker(bin_path, native_traces=True):
+            store = store_cls.build(
+                docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH
+            )
+        elapsed = time.perf_counter() - t0
 
-    peak_rss = tracker.stop()
+        # Read peak memory using FileReader
+        try:
+            with memray.FileReader(bin_path) as reader:
+                peak_bytes = reader.metadata.peak_memory
+                memray_peak_mb = peak_bytes / (1024 * 1024)
+                peak_rss = memray_peak_mb
+        except Exception as e:
+            print(f"Error reading memray file: {e}")
+            peak_rss = 0.0
+
+        # Generate HTML flamegraph
+        html_path = os.path.join(output_dir, f"memray_{max_samples}_{store_name}.html")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "memray", "flamegraph", "-f", "-o", html_path, bin_path],
+                capture_output=True,
+                text=True
+            )
+        except Exception as e:
+            print(f"Error generating memray flamegraph: {e}")
+    else:
+        # Track memory during build using background thread
+        tracker = MemoryTracker()
+        tracker.start()
+
+        t0 = time.perf_counter()
+        store = store_cls.build(
+            docs, embeddings, vecs, texts, metadatas, embed_dim, bit_width=BIT_WIDTH
+        )
+        elapsed = time.perf_counter() - t0
+
+        peak_rss = tracker.stop()
+
     rss_after = rss_mb()
     rss_delta = rss_after - rss_start
 
@@ -365,6 +314,8 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
         "theoretical_mb": theory_mb,
         "docs_per_sec": len(docs) / elapsed if elapsed > 0 else float("inf"),
     }
+    if memray_peak_mb is not None:
+        idx_stats["memray_peak_mb"] = memray_peak_mb
 
     # Benchmark queries
     queries_data = []
@@ -403,7 +354,7 @@ def run_worker_mode(store_name: str, max_samples: int, output_dir: str, csv_path
 # ─────────────────────────────────────────────
 
 
-def run_benchmark(max_samples: int, output_dir: str, csv_path: str):
+def run_benchmark(max_samples: int, output_dir: str, csv_path: str, use_memray: bool = False):
     os.makedirs(output_dir, exist_ok=True)
     txt_path = os.path.join(output_dir, f"results_{max_samples}.txt")
     json_path = os.path.join(output_dir, f"summary_{max_samples}.json")
@@ -415,7 +366,7 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str):
     sys.stdout = Tee(original_stdout, txt_file)
 
     try:
-        _run_orchestrator(max_samples, json_path, output_dir, csv_path)
+        _run_orchestrator(max_samples, json_path, output_dir, csv_path, use_memray)
     finally:
         sys.stdout = original_stdout
         txt_file.close()
@@ -424,7 +375,7 @@ def run_benchmark(max_samples: int, output_dir: str, csv_path: str):
     print(f"  [SAVED] JSON summary -> {json_path}")
 
 
-def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_path: str):
+def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_path: str, use_memray: bool = False):
     # Find all stores we support
     all_supported_stores = VectorStoreRegistry.get_all_names()
 
@@ -435,6 +386,8 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     print(f"  TurboVec bits  : {BIT_WIDTH}")
     print(f"  Top-k          : {TOP_K}")
     print(f"  Timing repeats : {N_TIMING_REPEATS}")
+    if use_memray:
+        print(f"  Memory Profiler: Memray (Detailed)")
 
     # Spawning workers
     section("1 · RUNNING PROCESS-ISOLATED BENCHMARKS")
@@ -462,26 +415,30 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             csv_path,
             "--is-subprocess",
         ]
+        if use_memray:
+            cmd.append("--memray")
         proc = subprocess.run(cmd, capture_output=True, text=True)
 
         if proc.returncode != 0:
             print(f"FAILED (code {proc.returncode})")
             # Filter out tqdm progress bar lines (they contain \r and carriage returns)
-            for stream_name, stream_text in [("stdout", proc.stdout), ("stderr", proc.stderr)]:
+            for stream_name, stream_text in [
+                ("stdout", proc.stdout),
+                ("stderr", proc.stderr),
+            ]:
                 if not stream_text or not stream_text.strip():
                     continue
                 lines = stream_text.strip().splitlines()
                 # Only filter lines that are pure progress bars (contain "|" and "it/s" or "Materializing param")
                 relevant = [
-                    l for l in lines
+                    l
+                    for l in lines
                     if not (("it/s" in l or "Materializing param" in l) and "|" in l)
                 ]
                 if relevant:
                     tail = "\n      ".join(relevant[-60:])
                     print(f"    [{stream_name}]:\n      {tail}")
             continue
-
-
 
         # Load temporary json
         tmp_json_path = os.path.join(
@@ -546,10 +503,12 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
     print(
         f"  Theoretical MB = exact bytes the store needs ignoring OS allocator overhead."
     )
+    mem_col_label = "Memray Peak(MB)" if use_memray else "RSS Δ(MB)"
+    mem_col_key = "memray_peak_mb" if use_memray else "rss_delta_mb"
     print(
-        f"\n  {'Store':<22} {'Time(s)':>8} {'docs/s':>9} {'RSS Δ(MB)':>11} {'Theory(MB)':>12} {'Compression':>12}"
+        f"\n  {'Store':<22} {'Time(s)':>8} {'docs/s':>9} {mem_col_label:>15} {'Theory(MB)':>12} {'Compression':>12}"
     )
-    sep("-", 80)
+    sep("-", 84 if use_memray else 80)
     baseline_theory = idx_stats.get("baseline", {}).get("theoretical_mb", None)
     for name in active_stores:
         s = idx_stats[name]
@@ -558,9 +517,12 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             ratio_str = f"{baseline_theory / theory:.1f}x" if theory > 0 else "—"
         else:
             ratio_str = "—"
+        mem_val = s.get(mem_col_key, float("nan"))
+        if mem_val is None:
+            mem_val = float("nan")
         print(
             f"  {VectorStoreRegistry.get_display_name(name):<22} {s['index_time_s']:>8.3f} "
-            f"{s['docs_per_sec']:>9.1f} {s['rss_delta_mb']:>11.1f} "
+            f"{s['docs_per_sec']:>9.1f} {mem_val:>15.1f} "
             f"{theory:>12.2f} {ratio_str:>12}"
         )
 
@@ -732,7 +694,9 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
 
     print(
         f"\n  {'Metric':<35}  "
-        + "  ".join(f"{VectorStoreRegistry.get_display_name(n):>{col}}" for n in active_stores)
+        + "  ".join(
+            f"{VectorStoreRegistry.get_display_name(n):>{col}}" for n in active_stores
+        )
         + f"  {'Winner':>12}"
     )
     sep("-", 35 + col * len(active_stores) + 15)
@@ -749,28 +713,40 @@ def _run_orchestrator(max_samples: int, json_path: str, output_dir: str, csv_pat
             (min if prefer == "lower" else max)(valid, key=valid.get) if valid else "—"
         )
         val_str = "  ".join(f"{vals[n]:>{col}.4f}" for n in active_stores)
-        print(f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}")
+        print(
+            f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}"
+        )
         for name in active_stores:
             summary_metrics["stores"][name][label] = vals[name]
 
     sep("-", 35 + col * len(active_stores) + 15)
 
-    for label, key, prefer in [
+    metrics_to_print = [
         ("Index time (s)", "index_time_s", "lower"),
         ("Indexing d/s", "docs_per_sec", "higher"),
-        ("RSS delta (MB) [*]", "rss_delta_mb", "lower"),
-        ("Theoretical MB [*]", "theoretical_mb", "lower"),
-    ]:
+    ]
+    if use_memray:
+        metrics_to_print.append(("Memray Peak (MB)", "memray_peak_mb", "lower"))
+    else:
+        metrics_to_print.append(("RSS delta (MB) [*]", "rss_delta_mb", "lower"))
+    
+    metrics_to_print.append(("Theoretical MB [*]", "theoretical_mb", "lower"))
+
+    for label, key, prefer in metrics_to_print:
         vals = {
-            name: idx_stats[name][key] for name in active_stores if name in idx_stats
+            name: idx_stats[name].get(key, float("nan")) for name in active_stores if name in idx_stats
         }
+        # filter out nan/None values to compute winner
+        valid_vals = {k: v for k, v in vals.items() if v is not None and not math.isnan(v)}
         winner = (
-            (min if prefer == "lower" else max)(vals, key=vals.get) if vals else "—"
+            (min if prefer == "lower" else max)(valid_vals, key=valid_vals.get) if valid_vals else "—"
         )
         val_str = "  ".join(
             f"{vals.get(n, float('nan')):>{col}.4f}" for n in active_stores
         )
-        print(f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}")
+        print(
+            f"  {label:<35}  {val_str}  {VectorStoreRegistry.get_display_name(winner):>12}"
+        )
         for name in active_stores:
             summary_metrics["stores"][name][label] = vals.get(name, float("nan"))
 
@@ -900,14 +876,37 @@ if __name__ == "__main__":
         help="If specified, run benchmark only for this store",
     )
     parser.add_argument(
-        "--dataset", type=str, default=CSV_PATH, required=(CSV_PATH is None), help="Path to the input CSV dataset"
+        "--dataset",
+        type=str,
+        default=CSV_PATH,
+        required=(CSV_PATH is None),
+        help="Path to the input CSV dataset",
     )
     parser.add_argument(
         "--is-subprocess",
         action="store_true",
         help="Internal flag to signal subprocess run",
     )
+    parser.add_argument(
+        "--memray",
+        action="store_true",
+        help="Use memray for detailed tracking of memory usage",
+    )
     args = parser.parse_args()
+
+    if args.memray:
+        if sys.platform == "win32":
+            parser.error(
+                "Memray does not support native Windows. Please run the benchmark "
+                "under WSL (Windows Subsystem for Linux), Linux, or macOS."
+            )
+        try:
+            import memray
+        except ImportError:
+            parser.error(
+                "memray is not installed. Install it using 'pip install memray' "
+                "(or 'pip install -e .[memray]') under WSL/Linux/macOS to enable detailed memory tracking."
+            )
 
     if args.is_subprocess and args.store:
         run_worker_mode(
@@ -915,8 +914,12 @@ if __name__ == "__main__":
             max_samples=args.samples,
             output_dir=args.output_dir,
             csv_path=args.dataset,
+            use_memray=args.memray,
         )
     else:
         run_benchmark(
-            max_samples=args.samples, output_dir=args.output_dir, csv_path=args.dataset
+            max_samples=args.samples,
+            output_dir=args.output_dir,
+            csv_path=args.dataset,
+            use_memray=args.memray,
         )

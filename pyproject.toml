@@ -23,3 +23,13 @@ dependencies = [
     "usearch>=2.25.3",
     "wrapt>=2.2.1",
 ]
+
+[project.optional-dependencies]
+memray = [
+    "memray>=1.12.0",
+]
+
+[project.scripts]
+run_all = "run_all:main"
+benchmark = "run_benchmark:main"
+

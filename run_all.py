@@ -52,6 +52,7 @@ METRIC_DEFS = [
     ("Indexing d/s",             "Indexing d/s",           "higher"),
     # ── Memory ─────────────────────────────────────────────────────────────
     ("RSS delta (MB) [*]",       "RSS delta (MB) [*]",     "lower"),
+    ("Memray Peak (MB)",         "Memray Peak (MB)",       "lower"),
     ("Theoretical MB [*]",       "Theoretical MB [*]",     "lower"),
     ("Compression vs baseline",  "Compression vs baseline","higher"),
     # ── Quality ────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ def highlight_winner(vals: dict, prefer: str) -> str:
 # STEP 1: RUN BENCHMARKS
 # ─────────────────────────────────────────────
 
-def run_all_benchmarks(dataset_path: str = None):
+def run_all_benchmarks(dataset_path: str = None, use_memray: bool = False):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     python = sys.executable
 
@@ -134,6 +135,8 @@ def run_all_benchmarks(dataset_path: str = None):
         cmd = [python, "run_benchmark.py", "--samples", str(n), "--output-dir", OUTPUT_DIR]
         if dataset_path:
             cmd.extend(["--dataset", dataset_path])
+        if use_memray:
+            cmd.append("--memray")
         ret = subprocess.run(cmd)   # inherits stdout/stderr → prints live + captured by run_benchmark
         if ret.returncode != 0:
             print(f"\n  [WARN] run_benchmark.py exited with code {ret.returncode} for n={n:,}")
@@ -257,7 +260,9 @@ def build_comparison(summaries: dict[int, dict], out_txt: str, out_json: str):
         "P95 latency (ms)":     "speed",
         "Index time (s)":       "speed",
         "Indexing d/s":         "speed",
+        "RSS delta (MB) [*]":   "memory",
         "RSS delta (MB)":       "memory",
+        "Memray Peak (MB)":     "memory",
         "Recall@1 (avg)":       "quality",
         "Recall@3 (avg)":       "quality",
         "Recall@5 (avg)":       "quality",
@@ -352,18 +357,39 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Multi-scale vector store benchmark orchestrator")
     parser.add_argument("--dataset", type=str, default=None, help="Path to the input CSV dataset")
+    parser.add_argument(
+        "--memray",
+        action="store_true",
+        help="Use memray for detailed tracking of memory usage",
+    )
     args = parser.parse_args()
+
+    if args.memray:
+        if sys.platform == "win32":
+            parser.error(
+                "Memray does not support native Windows. Please run the benchmark "
+                "under WSL (Windows Subsystem for Linux), Linux, or macOS."
+            )
+        try:
+            import memray
+        except ImportError:
+            parser.error(
+                "memray is not installed. Install it using 'pip install memray' "
+                "(or 'pip install -e .[memray]') under WSL/Linux/macOS to enable detailed memory tracking."
+            )
 
     header("MULTI-SCALE VECTOR STORE BENCHMARK ORCHESTRATOR")
     print(f"  Sample sizes : {', '.join(f'{n:,}' for n in SAMPLE_SIZES)}")
     print(f"  Output dir   : {OUTPUT_DIR}")
     print(f"  Skip existing: {SKIP_EXISTING}")
+    if args.memray:
+        print(f"  Memory Profiler: Memray (Detailed)")
     if args.dataset:
         print(f"  Dataset path : {args.dataset}")
 
     # Step 1 — Run individual benchmarks
     section("PHASE 1 · RUNNING INDIVIDUAL BENCHMARKS")
-    run_all_benchmarks(dataset_path=args.dataset)
+    run_all_benchmarks(dataset_path=args.dataset, use_memray=args.memray)
 
     # Step 2 — Load summaries
     section("PHASE 2 · LOADING JSON SUMMARIES")
