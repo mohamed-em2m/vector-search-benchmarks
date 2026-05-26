@@ -24,6 +24,9 @@ dependencies = [
     "wrapt>=2.2.1",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.optional-dependencies]
 memray = ["memray>=1.12.0"]
