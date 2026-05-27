@@ -115,6 +115,7 @@ stores:
   # product options:
   #   pq_compression: x4|x8|x16|x32|x64  (compression ratio vs baseline)
   #   pq_always_ram: true
+  #
   qdrant:
     enabled: true
     variants:
