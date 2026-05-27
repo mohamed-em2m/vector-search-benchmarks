@@ -3,3 +3,4 @@
 .venv_legacy
 __pycache__
 .env
+test.ipynb
