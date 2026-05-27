@@ -51,7 +51,7 @@ class QdrantStore(AbstractVectorStore):
 
             scalar_type_str = str(kwargs.get("scalar_type", "int8")).lower()
             scalar_type = (
-                ScalarType.INT8 if scalar_type_str == "int8" else ScalarType.UINT8
+                ScalarType.INT8 if scalar_type_str == "int8" else ScalarType.INT8
             )
             quantization_config = ScalarQuantization(
                 scalar=ScalarQuantizationConfig(

@@ -14,6 +14,6 @@ stores:
       - name: "USearch (Cosine)"
         params:
           metric: cos
-      - name: "USearch (L2)"
+      - name: "USearch (Euclidean)"
         params:
-          metric: l2
+          metric: euclidean

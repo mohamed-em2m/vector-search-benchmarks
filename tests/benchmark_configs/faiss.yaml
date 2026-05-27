@@ -2,7 +2,7 @@ dataset: ./data/temp_dummy.csv
 test_cases: ./data/test_cases.json
 output_dir: ./results
 
-sample_sizes: [10]
+sample_sizes: [100]
 top_k: 10
 timing_repeats: 5
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
@@ -18,7 +18,7 @@ stores:
       - name: "FAISS (IVF+PQ)"
         params:
           index_type: ivf_pq
-          nlist: 100
+          nlist: 5
           m: 8
           nbits: 8
 
