@@ -62,12 +62,12 @@ stores:
       #   params:
       #     index_type: flat_ip
 
-      - name: "FAISS (HNSW)"
-        params:
-          index_type: hnsw
-          hnsw_m: 32              # number of connections per layer
-          efConstruction: 200     # construction-time search width
-          efSearch: 128           # query-time search width
+      #- name: "FAISS (HNSW)"
+      #  params:
+      #    index_type: hnsw
+      #    hnsw_m: 32              # number of connections per layer
+      #    efConstruction: 200     # construction-time search width
+      #    efSearch: 128           # query-time search width
 
       - name: "FAISS (IVF+PQ)"
         params:
@@ -105,8 +105,43 @@ stores:
           bit_width: 2
 
   # ── Qdrant (in-memory) ───────────────────────────────────────
+  # quantization: null | "scalar" | "product"
+  #
+  # scalar options:
+  #   scalar_type: "int8"          (only INT8 supported, gives 4x memory reduction)
+  #   scalar_quantile: 0.99        (trims outliers; higher = more accurate mapping)
+  #   scalar_always_ram: true      (keep quantized index in RAM)
+  #
+  # product options:
+  #   pq_compression: x4|x8|x16|x32|x64  (compression ratio vs baseline)
+  #   pq_always_ram: true
   qdrant:
     enabled: true
+    variants:
+      - name: "Qdrant (float32)"
+        params: {}
+
+      - name: "Qdrant (Scalar INT8)"
+        params:
+          quantization: scalar
+          scalar_quantile: 0.99
+          scalar_always_ram: true
+
+      - name: "Qdrant (Product x16)"
+        params:
+          quantization: product
+          pq_compression: x16
+          pq_always_ram: true
+
+      # - name: "Qdrant (Product x4)"
+      #   params:
+      #     quantization: product
+      #     pq_compression: x4
+
+      # - name: "Qdrant (Product x32)"
+      #   params:
+      #     quantization: product
+      #     pq_compression: x32
 
   # ── USearch (HNSW) ───────────────────────────────────────────
   # params:
