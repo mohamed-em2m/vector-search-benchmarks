@@ -1,0 +1,19 @@
+dataset: ./data/temp_dummy.csv
+test_cases: ./data/test_cases.json
+output_dir: ./results
+
+sample_sizes: [10]
+top_k: 10
+timing_repeats: 5
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+
+stores:
+  scann:
+    enabled: true
+    variants:
+      - name: "ScaNN (Tree-AH)"
+        params:
+          mode: tree_ah
+          num_leaves: 100
+          num_leaves_to_search: 20
+          reorder_num: 200

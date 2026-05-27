@@ -1,0 +1,33 @@
+dataset: ./data/temp_dummy.csv
+test_cases: ./data/test_cases.json
+output_dir: ./results
+
+sample_sizes: [10]
+top_k: 10
+timing_repeats: 5
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+
+stores:
+  faiss:
+    enabled: true
+    variants:
+      - name: "FAISS (FlatL2)"
+        params:
+          index_type: flat_l2
+
+      - name: "FAISS (IVF+PQ)"
+        params:
+          index_type: ivf_pq
+          nlist: 100
+          m: 8
+          nbits: 8
+
+      - name: "FAISS (SQ8)"
+        params:
+          index_type: sq
+          qtype: QT_8bit
+
+      - name: "FAISS (SQ4)"
+        params:
+          index_type: sq
+          qtype: QT_4bit

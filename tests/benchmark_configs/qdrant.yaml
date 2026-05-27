@@ -1,0 +1,78 @@
+dataset: ./data/temp_dummy.csv
+test_cases: ./data/test_cases.json
+output_dir: ./results
+
+sample_sizes: [10]
+top_k: 10
+timing_repeats: 5
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+
+stores:
+  qdrant:
+    enabled: true
+    variants:
+      - name: "Qdrant (float32)"
+        params: {}
+
+      - name: "Qdrant (Scalar INT8)"
+        params:
+          quantization: scalar
+          scalar_type: int8
+          scalar_quantile: 0.99
+          scalar_always_ram: true
+
+      - name: "Qdrant (Scalar UINT8)"
+        params:
+          quantization: scalar
+          scalar_type: uint8
+          scalar_quantile: 0.99
+          scalar_always_ram: true
+
+      - name: "Qdrant (Product x16)"
+        params:
+          quantization: product
+          pq_compression: x16
+          pq_always_ram: true
+
+      - name: "Qdrant (Binary 1-bit)"
+        params:
+          quantization: binary
+          binary_encoding: one_bit
+          binary_always_ram: true
+
+      - name: "Qdrant (Binary 1.5-bit)"
+        params:
+          quantization: binary
+          binary_encoding: one_and_half_bits
+          binary_always_ram: true
+
+      - name: "Qdrant (Binary 2-bit Asym)"
+        params:
+          quantization: binary
+          binary_encoding: two_bits
+          binary_query_encoding: scalar8bits
+          binary_always_ram: true
+
+      - name: "Qdrant (TurboQuant 4-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits4
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 2-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits2
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 1.5-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits1_5
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 1-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits1
+          turbo_always_ram: true
