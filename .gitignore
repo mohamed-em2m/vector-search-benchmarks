@@ -1,6 +1,5 @@
 *.egg-info
 .venv
 .venv_legacy
-uv.lock
-results
-benchmark_config.yaml
+__pycache__
+.env
