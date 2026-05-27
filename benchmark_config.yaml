@@ -19,7 +19,7 @@ output_dir: ./results
 
 # ── Benchmark Settings ──────────────────────────────────────────
 # samples: 500                   # for run_benchmark.py (or use --samples)
-# sample_sizes: [500, 5000]      # for run_all.py (overrides the default list)
+sample_sizes: [500, 5000, 50000, 500000] # ,250000,500000,1000000]      # for run_all.py (overrides the default list)
 top_k: 5
 timing_repeats: 5
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
@@ -62,19 +62,19 @@ stores:
       #   params:
       #     index_type: flat_ip
 
-      # - name: "FAISS (HNSW)"
-      #   params:
-      #     index_type: hnsw
-      #     hnsw_m: 32              # number of connections per layer
-      #     efConstruction: 200     # construction-time search width
-      #     efSearch: 128           # query-time search width
+      - name: "FAISS (HNSW)"
+        params:
+          index_type: hnsw
+          hnsw_m: 32              # number of connections per layer
+          efConstruction: 200     # construction-time search width
+          efSearch: 128           # query-time search width
 
-      # - name: "FAISS (IVF+PQ)"
-      #   params:
-      #     index_type: ivf_pq
-      #     nlist: 100              # number of Voronoi cells
-      #     m: 8                    # number of sub-quantizers
-      #     nbits: 8                # bits per sub-quantizer code
+      - name: "FAISS (IVF+PQ)"
+        params:
+          index_type: ivf_pq
+          nlist: 100              # number of Voronoi cells
+          m: 8                    # number of sub-quantizers
+          nbits: 8                # bits per sub-quantizer code
       #     nprobe: 10              # cells to visit at query time
 
       - name: "FAISS (SQ8)"
@@ -96,13 +96,13 @@ stores:
         params:
           bit_width: 3
 
-      # - name: "TurboVec (4-bit)"
-      #   params:
-      #     bit_width: 4
+      - name: "TurboVec (4-bit)"
+        params:
+          bit_width: 4
 
-      # - name: "TurboVec (2-bit)"
-      #   params:
-      #     bit_width: 2
+      - name: "TurboVec (2-bit)"
+        params:
+          bit_width: 2
 
   # ── Qdrant (in-memory) ───────────────────────────────────────
   qdrant:
