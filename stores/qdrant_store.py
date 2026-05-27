@@ -123,7 +123,19 @@ class QdrantStore(AbstractVectorStore):
         return instance
 
     def search(self, query: str, k: int) -> List[Tuple[Document, float]]:
-        return self.store.similarity_search_with_score(query, k=k)
+        from qdrant_client.models import SearchParams, QuantizationSearchParams
+
+        search_params = None
+        if self._quantization is not None:
+            search_params = SearchParams(
+                quantization=QuantizationSearchParams(
+                    ignore=False,
+                    rescore=False,
+                )
+            )
+        return self.store.similarity_search_with_score(
+            query, k=k, search_params=search_params
+        )
 
     @classmethod
     def theoretical_bytes(cls, embed_dim: int, num_docs: int, **kwargs) -> float:

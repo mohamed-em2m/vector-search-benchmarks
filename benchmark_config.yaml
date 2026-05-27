@@ -20,7 +20,7 @@ output_dir: ./results
 # ── Benchmark Settings ──────────────────────────────────────────
 # samples: 500                   # for run_benchmark.py (or use --samples)
 sample_sizes: [500, 5000, 50000, 500000] # ,250000,500000,1000000]      # for run_all.py (overrides the default list)
-top_k: 5
+top_k: 10
 timing_repeats: 5
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 # memray: false                  # set true to enable memray profiling (Linux/macOS only)
