@@ -29,4 +29,4 @@ jobs:
 
       - name: Run Qdrant tests
         run: |
-          uv run pytest tests/test_config_qdrant.py -vv
+          uv run pytest tests/test_config_qdrant.py -vv -s

@@ -29,4 +29,4 @@ jobs:
 
       - name: Run ScaNN tests
         run: |
-          uv run pytest tests/test_config_scann.py -vv
+          uv run pytest tests/test_config_scann.py -vv -s
