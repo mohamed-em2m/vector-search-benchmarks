@@ -462,7 +462,7 @@ def run_benchmark_pipeline(
 
     if not summaries:
         print("  No summaries found.")
-        return
+        return False
 
     # Phase 3
     section("PHASE 3 · BUILDING COMPARISON")
@@ -491,7 +491,7 @@ def run_benchmark_pipeline(
     print(f"  Output directory:\n  {os.path.abspath(cfg['output_dir'])}")
 
     sep("═")
-    
+
     return True
 
 
