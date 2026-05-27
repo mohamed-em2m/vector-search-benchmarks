@@ -1,0 +1,26 @@
+{
+  "samples": 10,
+  "stores": {
+    "usearch__usearch_cosine": {
+      "Avg latency (ms)": 14.580990526194096,
+      "P95 latency (ms)": 17.439699999522418,
+      "Latency std (ms)": 2.5397028880518144,
+      "Recall@1 (avg)": 0.0,
+      "Recall@3 (avg)": 0.0,
+      "Recall@5 (avg)": 0.0,
+      "Precision@1 (avg)": 0.0,
+      "Precision@3 (avg)": 0.0,
+      "Precision@5 (avg)": 0.0,
+      "Avg top-1 score": 0.8208410269335696,
+      "Avg score gap (1-2)": -0.036645779484196714,
+      "Index time (s)": 0.10541999999986729,
+      "Indexing d/s": 94.85866059583181,
+      "RSS delta (MB) [*]": 0.0,
+      "Theoretical MB [*]": 0.01536
+    }
+  },
+  "variant_display": {
+    "usearch__usearch_cosine": "USearch (Cosine)",
+    "usearch__usearch_l2": "USearch (L2)"
+  }
+}
