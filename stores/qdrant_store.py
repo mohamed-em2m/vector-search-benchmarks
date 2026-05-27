@@ -17,6 +17,8 @@ class QdrantStore(AbstractVectorStore):
     def is_available(cls) -> bool:
         try:
             from qdrant_client import QdrantClient
+            from langchain_qdrant import QdrantVectorStore
+
             return True
         except ImportError:
             return False
@@ -33,20 +35,10 @@ class QdrantStore(AbstractVectorStore):
         **kwargs,
     ) -> "AbstractVectorStore":
         from qdrant_client import QdrantClient
-        from qdrant_client.models import Distance, VectorParams
+        from qdrant_client.models import Distance, VectorParams, PointStruct
         from langchain_qdrant import QdrantVectorStore
         from langchain_core.embeddings import Embeddings
 
-        # ── Quantization config ───────────────────────────────────────────
-        # quantization: "scalar" (default None = no quantization)
-        #               "product"
-        # scalar options:
-        #   scalar_type: "int8" (default)
-        #   scalar_quantile: 0.99 (default)
-        #   scalar_always_ram: true (default)
-        # product options:
-        #   pq_compression: "x4" | "x8" | "x16" | "x32" | "x64" (default "x16")
-        #   pq_always_ram: true (default)
         quantization = kwargs.get("quantization", None)
         quantization_config = None
 
@@ -56,8 +48,11 @@ class QdrantStore(AbstractVectorStore):
                 ScalarQuantizationConfig,
                 ScalarType,
             )
+
             scalar_type_str = str(kwargs.get("scalar_type", "int8")).lower()
-            scalar_type = ScalarType.INT8 if scalar_type_str == "int8" else ScalarType.INT8
+            scalar_type = (
+                ScalarType.INT8 if scalar_type_str == "int8" else ScalarType.UINT8
+            )
             quantization_config = ScalarQuantization(
                 scalar=ScalarQuantizationConfig(
                     type=scalar_type,
@@ -65,16 +60,16 @@ class QdrantStore(AbstractVectorStore):
                     always_ram=bool(kwargs.get("scalar_always_ram", True)),
                 )
             )
-
         elif quantization == "product":
             from qdrant_client.models import (
                 ProductQuantization,
                 ProductQuantizationConfig,
                 CompressionRatio,
             )
+
             compression_map = {
-                "x4":  CompressionRatio.X4,
-                "x8":  CompressionRatio.X8,
+                "x4": CompressionRatio.X4,
+                "x8": CompressionRatio.X8,
                 "x16": CompressionRatio.X16,
                 "x32": CompressionRatio.X32,
                 "x64": CompressionRatio.X64,
@@ -87,27 +82,88 @@ class QdrantStore(AbstractVectorStore):
                     always_ram=bool(kwargs.get("pq_always_ram", True)),
                 )
             )
+        elif quantization == "binary":
+            from qdrant_client.models import (
+                BinaryQuantization,
+                BinaryQuantizationConfig,
+                BinaryQuantizationEncoding,
+                BinaryQuantizationQueryEncoding,
+            )
 
-        # ── Create collection ─────────────────────────────────────────────
+            encoding_str = str(kwargs.get("binary_encoding", "one_bit")).lower()
+            encoding = None
+            if encoding_str in ("two_bits", "2_bits", "2bit", "2bits"):
+                encoding = BinaryQuantizationEncoding.TWO_BITS
+            elif encoding_str in ("one_and_half_bits", "1.5_bits", "1.5bit", "1.5bits"):
+                encoding = BinaryQuantizationEncoding.ONE_AND_HALF_BITS
+
+            query_encoding_str = str(
+                kwargs.get("binary_query_encoding", "default")
+            ).lower()
+            query_encoding = None
+            if query_encoding_str == "binary":
+                query_encoding = BinaryQuantizationQueryEncoding.BINARY
+            elif query_encoding_str == "scalar8bits":
+                query_encoding = BinaryQuantizationQueryEncoding.SCALAR8BITS
+            elif query_encoding_str == "scalar4bits":
+                query_encoding = BinaryQuantizationQueryEncoding.SCALAR4BITS
+
+            quantization_config = BinaryQuantization(
+                binary=BinaryQuantizationConfig(
+                    always_ram=bool(kwargs.get("binary_always_ram", True)),
+                    encoding=encoding,
+                    query_encoding=query_encoding,
+                )
+            )
+        elif quantization == "turbo":
+            from qdrant_client.models import (
+                TurboQuantization,
+                TurboQuantQuantizationConfig,
+                TurboQuantBitSize,
+            )
+
+            bits_str = str(kwargs.get("turbo_bits", "bits4")).lower()
+            bits = TurboQuantBitSize.BITS4
+            if bits_str in ("bits2", "2", "2bit", "2bits"):
+                bits = TurboQuantBitSize.BITS2
+            elif bits_str in ("bits1_5", "1.5", "1.5bit", "1.5bits"):
+                bits = TurboQuantBitSize.BITS1_5
+            elif bits_str in ("bits1", "1", "1bit", "1bits"):
+                bits = TurboQuantBitSize.BITS1
+
+            quantization_config = TurboQuantization(
+                turbo=TurboQuantQuantizationConfig(
+                    always_ram=bool(kwargs.get("turbo_always_ram", True)),
+                    bits=bits,
+                )
+            )
+
         col = f"bench_{uuid.uuid4().hex[:8]}"
         client = QdrantClient(":memory:")
-
         create_kwargs = dict(
             collection_name=col,
             vectors_config=VectorParams(size=embed_dim, distance=Distance.COSINE),
         )
         if quantization_config is not None:
             create_kwargs["quantization_config"] = quantization_config
-
         client.create_collection(**create_kwargs)
 
-        # ── Ingest with pre-computed vectors ─────────────────────────────
+        # upload pre-computed vectors directly via upsert
         precomputed = vecs.tolist()
-        text_to_vec = {t: v for t, v in zip(texts, precomputed)}
+        points = [
+            PointStruct(
+                id=i,
+                vector=precomputed[i],
+                # Nested 'metadata' dict aligns with the default LangChain-Qdrant payload schema
+                payload={"page_content": texts[i], "metadata": metadatas[i]},
+            )
+            for i in range(len(texts))
+        ]
+        client.upsert(collection_name=col, points=points)
 
         class MockEmbed(Embeddings):
             def embed_documents(self, t):
-                return [text_to_vec.get(x) or embeddings.embed_query(x) for x in t]
+                return embeddings.embed_documents(t)
 
             def embed_query(self, q):
                 return embeddings.embed_query(q)
@@ -116,10 +172,11 @@ class QdrantStore(AbstractVectorStore):
         instance._quantization = quantization
         instance._embed_dim = embed_dim
         instance._num_docs = len(docs)
+        instance._scalar_always_ram = bool(kwargs.get("scalar_always_ram", True))
+        instance._kwargs = kwargs
         instance.store = QdrantVectorStore(
             client=client, collection_name=col, embedding=MockEmbed()
         )
-        instance.store.add_texts(texts, metadatas=metadatas)
         return instance
 
     def search(self, query: str, k: int) -> List[Tuple[Document, float]]:
@@ -127,12 +184,14 @@ class QdrantStore(AbstractVectorStore):
 
         search_params = None
         if self._quantization is not None:
+            # rescore=True ensures quantized candidates are re-ranked using original vectors
             search_params = SearchParams(
                 quantization=QuantizationSearchParams(
                     ignore=False,
-                    rescore=False,
+                    rescore=True,
                 )
             )
+
         return self.store.similarity_search_with_score(
             query, k=k, search_params=search_params
         )
@@ -141,11 +200,50 @@ class QdrantStore(AbstractVectorStore):
     def theoretical_bytes(cls, embed_dim: int, num_docs: int, **kwargs) -> float:
         quantization = kwargs.get("quantization", None)
         if quantization == "scalar":
-            # INT8: 1 byte per dimension instead of 4
-            return (embed_dim * 1 * num_docs) / 1e6
+            quantized = embed_dim * 1 * num_docs
+            if bool(kwargs.get("scalar_always_ram", True)):
+                original = embed_dim * 4 * num_docs
+                return (quantized + original) / 1e6
+            return quantized / 1e6
         elif quantization == "product":
             compression_map = {"x4": 4, "x8": 8, "x16": 16, "x32": 32, "x64": 64}
-            ratio = compression_map.get(str(kwargs.get("pq_compression", "x16")).lower(), 16)
-            return (embed_dim * 4 * num_docs) / ratio / 1e6
+            ratio = compression_map.get(
+                str(kwargs.get("pq_compression", "x16")).lower(), 16
+            )
+            quantized = (embed_dim * 4 * num_docs) / ratio
+            if bool(kwargs.get("pq_always_ram", True)):
+                original = embed_dim * 4 * num_docs
+                return (quantized + original) / 1e6
+            return quantized / 1e6
+        elif quantization == "binary":
+            encoding_str = str(kwargs.get("binary_encoding", "one_bit")).lower()
+            bits = 1
+            if encoding_str in ("two_bits", "2_bits", "2bit", "2bits"):
+                bits = 2
+            elif encoding_str in ("one_and_half_bits", "1.5_bits", "1.5bit", "1.5bits"):
+                # 1.5-bit binary achieves a physical 24x compression ratio of float32,
+                # which translates to exactly 1.333333 bits per dimension (32 / 24)
+                bits = 4 / 3
+            quantized = (embed_dim * bits * num_docs) / 8
+            if bool(kwargs.get("binary_always_ram", True)):
+                original = embed_dim * 4 * num_docs
+                return (quantized + original) / 1e6
+            return quantized / 1e6
+        elif quantization == "turbo":
+            bits_str = str(kwargs.get("turbo_bits", "bits4")).lower()
+            bits = 4
+            if bits_str in ("bits2", "2", "2bit", "2bits"):
+                bits = 2
+            elif bits_str in ("bits1_5", "1.5", "1.5bit", "1.5bits"):
+                # TurboQuant 1.5-bit uses exactly 1.5 bits per dimension
+                bits = 1.5
+            elif bits_str in ("bits1", "1", "1bit", "1bits"):
+                bits = 1
+            quantized = (embed_dim * bits * num_docs) / 8
+            if bool(kwargs.get("turbo_always_ram", True)):
+                original = embed_dim * 4 * num_docs
+                return (quantized + original) / 1e6
+            return quantized / 1e6
+
         # No quantization — full float32
         return (embed_dim * 4 * num_docs) / 1e6

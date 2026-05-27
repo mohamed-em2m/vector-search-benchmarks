@@ -105,16 +105,25 @@ stores:
           bit_width: 2
 
   # ── Qdrant (in-memory) ───────────────────────────────────────
-  # quantization: null | "scalar" | "product"
+  # quantization: null | "scalar" | "product" | "binary" | "turbo"
   #
   # scalar options:
-  #   scalar_type: "int8"          (only INT8 supported, gives 4x memory reduction)
+  #   scalar_type: "int8" | "uint8" (both supported, gives 4x memory reduction)
   #   scalar_quantile: 0.99        (trims outliers; higher = more accurate mapping)
-  #   scalar_always_ram: true      (keep quantized index in RAM)
+  #   scalar_always_ram: true      (keep quantized index in RAM alongside original vectors)
   #
   # product options:
   #   pq_compression: x4|x8|x16|x32|x64  (compression ratio vs baseline)
   #   pq_always_ram: true
+  #
+  # binary options:
+  #   binary_encoding: "one_bit" | "two_bits" | "one_and_half_bits"
+  #   binary_query_encoding: "default" | "binary" | "scalar8bits" | "scalar4bits"
+  #   binary_always_ram: true
+  #
+  # turbo options:
+  #   turbo_bits: "bits4" | "bits2" | "bits1_5" | "bits1"
+  #   turbo_always_ram: true
   #
   qdrant:
     enabled: true
@@ -125,6 +134,14 @@ stores:
       - name: "Qdrant (Scalar INT8)"
         params:
           quantization: scalar
+          scalar_type: int8
+          scalar_quantile: 0.99
+          scalar_always_ram: true
+
+      - name: "Qdrant (Scalar UINT8)"
+        params:
+          quantization: scalar
+          scalar_type: uint8
           scalar_quantile: 0.99
           scalar_always_ram: true
 
@@ -134,15 +151,48 @@ stores:
           pq_compression: x16
           pq_always_ram: true
 
-      # - name: "Qdrant (Product x4)"
-      #   params:
-      #     quantization: product
-      #     pq_compression: x4
+      - name: "Qdrant (Binary 1-bit)"
+        params:
+          quantization: binary
+          binary_encoding: one_bit
+          binary_always_ram: true
 
-      # - name: "Qdrant (Product x32)"
-      #   params:
-      #     quantization: product
-      #     pq_compression: x32
+      - name: "Qdrant (Binary 1.5-bit)"
+        params:
+          quantization: binary
+          binary_encoding: one_and_half_bits
+          binary_always_ram: true
+
+      - name: "Qdrant (Binary 2-bit Asym)"
+        params:
+          quantization: binary
+          binary_encoding: two_bits
+          binary_query_encoding: scalar8bits
+          binary_always_ram: true
+
+      - name: "Qdrant (TurboQuant 4-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits4
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 2-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits2
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 1.5-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits1_5
+          turbo_always_ram: true
+
+      - name: "Qdrant (TurboQuant 1-bit)"
+        params:
+          quantization: turbo
+          turbo_bits: bits1
+          turbo_always_ram: true
 
   # ── USearch (HNSW) ───────────────────────────────────────────
   # params:
@@ -152,13 +202,13 @@ stores:
   #   expansion_search: int        (efSearch, default: library default)
   usearch:
     enabled: true
-    # variants:
-    #   - name: "USearch (cos)"
-    #     params:
-    #       metric: cos
-    #   - name: "USearch (L2)"
-    #     params:
-    #       metric: l2
+    variants:
+      - name: "USearch (Cosine)"
+        params:
+          metric: cos
+      - name: "USearch (L2)"
+        params:
+          metric: l2
 
   # ── ScaNN (Google) ───────────────────────────────────────────
   # params:
@@ -168,13 +218,10 @@ stores:
   #   reorder_num: int             (reordering depth, default: 200)
   scann:
     enabled: true
-    # variants:
-    #   - name: "ScaNN (brute force)"
-    #     params:
-    #       mode: brute_force
-    #   - name: "ScaNN (Tree-AH)"
-    #     params:
-    #       mode: tree_ah
-    #       num_leaves: 100
-    #       num_leaves_to_search: 20
-    #       reorder_num: 200
+    variants:
+      - name: "ScaNN (Tree-AH)"
+        params:
+          mode: tree_ah
+          num_leaves: 100
+          num_leaves_to_search: 20
+          reorder_num: 200
