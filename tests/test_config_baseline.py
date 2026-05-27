@@ -8,7 +8,7 @@ from run_all import run_benchmark_pipeline
 def test_run_all():
     """Run the benchmark pipeline on a small sample size for baseline."""
     output_dir = os.path.join(os.path.dirname(__file__), "../results_test")
-    run_benchmark_pipeline(
+    output = run_benchmark_pipeline(
         sample_sizes=[10],
         output_dir=output_dir,
         use_memray=False,
@@ -16,3 +16,4 @@ def test_run_all():
         test_cases_path="./data/test_cases.json",
         config_path="tests/benchmark_configs/baseline.yaml",
     )
+    assert output, "Benchmark pipeline did not complete successfully."

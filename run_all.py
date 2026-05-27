@@ -491,6 +491,8 @@ def run_benchmark_pipeline(
     print(f"  Output directory:\n  {os.path.abspath(cfg['output_dir'])}")
 
     sep("═")
+    
+    return True
 
 
 # ─────────────────────────────────────────────
