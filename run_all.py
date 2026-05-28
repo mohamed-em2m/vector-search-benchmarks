@@ -583,7 +583,7 @@ def run_benchmark_pipeline(
     summaries = load_all_summaries(resolved_sizes, resolved_output_dir)
     if not summaries:
         print("  No summaries found. Exiting pipeline.")
-        return
+        return False
     print(
         f"  Loaded summaries for: {', '.join(f'{n:,}' for n in sorted(summaries.keys()))}"
     )
@@ -604,6 +604,7 @@ def run_benchmark_pipeline(
     print(f"  Cross-sample report: aggregate_comparison.txt")
     print(f"  Cross-sample JSON  : aggregate_comparison.json")
     sep("═")
+    return True
 
 
 # ─────────────────────────────────────────────
