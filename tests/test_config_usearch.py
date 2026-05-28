@@ -9,7 +9,6 @@ def test_run_all():
     """Run the benchmark pipeline on a small sample size for USearch."""
     output_dir = os.path.join(os.path.dirname(__file__), "../results_test")
     output = run_benchmark_pipeline(
-        sample_sizes=[10],
         output_dir=output_dir,
         use_memray=False,
         dataset_path="./data/temp_dummy.csv",

@@ -2,18 +2,18 @@ dataset: ./data/temp_dummy.csv
 test_cases: ./data/test_cases.json
 output_dir: ./results
 
-sample_sizes: [100]
-top_k: 10
+sample_sizes: [1000]
+top_k: 5
 timing_repeats: 5
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 
 stores:
+  baseline:
+    enabled: true
+
   usearch:
     enabled: true
     variants:
       - name: "USearch (Cosine)"
         params:
           metric: cos
-      - name: "USearch (Euclidean)"
-        params:
-          metric: euclidean

@@ -1,0 +1,55 @@
+{
+  "samples": 10,
+  "stores": {
+    "baseline": {
+      "Avg latency (ms)": 14.454447368380466,
+      "P95 latency (ms)": 17.312039995158557,
+      "Latency std (ms)": 1.8793762623155708,
+      "Recall@1 (avg)": 0.0,
+      "Recall@3 (avg)": 0.0,
+      "Recall@5 (avg)": 0.0,
+      "Precision@1 (avg)": 0.0,
+      "Precision@3 (avg)": 0.0,
+      "Precision@5 (avg)": 0.0,
+      "Avg top-1 score": 0.17911165543707286,
+      "Avg score gap (1-2)": 0.03664180110349421,
+      "Index time (s)": 0.03262699999322649,
+      "Indexing d/s": 306.4946210830307,
+      "RSS delta (MB) [*]": 0.0,
+      "Theoretical MB [*]": 0.01536,
+      "Compression vs baseline": 1.0
+    },
+    "usearch__usearch_cosine": {
+      "Avg latency (ms)": 13.465232631240628,
+      "P95 latency (ms)": 16.454360003990587,
+      "Latency std (ms)": 1.7853926944815512,
+      "Recall@1 (avg)": 0.0,
+      "Recall@3 (avg)": 0.0,
+      "Recall@5 (avg)": 0.0,
+      "Precision@1 (avg)": 0.0,
+      "Precision@3 (avg)": 0.0,
+      "Precision@5 (avg)": 0.0,
+      "Avg top-1 score": 0.8208410269335696,
+      "Avg score gap (1-2)": -0.036645779484196714,
+      "Index time (s)": 0.0383224999968661,
+      "Indexing d/s": 260.94331008722736,
+      "RSS delta (MB) [*]": 0.0,
+      "Theoretical MB [*]": 0.01536,
+      "Compression vs baseline": 1.0,
+      "top1_match_rate": 1.0,
+      "top3_overlap_rate": 1.0,
+      "top5_overlap_rate": 1.0,
+      "kendall_tau": 0.9999999999999999,
+      "sim_result_set_jaccard_%": 100.0,
+      "sim_top1_token_overlap_%": 100.0,
+      "sim_tfidf_cosine_%": 100.0,
+      "sim_score_corr_%": 0.0,
+      "sim_rank_position_acc_%": 100.0,
+      "sim_overall_similarity_%": 80.0
+    }
+  },
+  "variant_display": {
+    "baseline": "Baseline (InMem)",
+    "usearch__usearch_cosine": "USearch (Cosine)"
+  }
+}
