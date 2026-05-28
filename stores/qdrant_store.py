@@ -40,6 +40,8 @@ class QdrantStore(AbstractVectorStore):
         from langchain_core.embeddings import Embeddings
 
         quantization = kwargs.get("quantization", None)
+        print(f"Building Qdrant store with quantization={quantization}")
+        
         quantization_config = None
 
         if quantization == "scalar":
@@ -116,6 +118,8 @@ class QdrantStore(AbstractVectorStore):
                 )
             )
         elif quantization == "turbo":
+            print("Using TurboQuant quantization config for Qdrant. This is an experimental feature and may not be supported in all versions of Qdrant."  # noqa: E501
+            )
             from qdrant_client.models import (
                 TurboQuantization,
                 TurboQuantQuantizationConfig,

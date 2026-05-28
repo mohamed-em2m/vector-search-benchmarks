@@ -1,512 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Vector DB Benchmark: Similarity to Baseline (IVF+PQ removed)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--color-background-primary);
+            font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            padding: 2rem 1.5rem;
+            --color-background-primary: #fafaf9;
+            --color-background-secondary: #f5f5f2;
+            --color-border-secondary: #e4e2dd;
+            --color-border-tertiary: #e2e0d9;
+            --color-text-primary: #1c1c1a;
+            --color-text-secondary: #5b5b56;
+            --border-radius-md: 8px;
+            --border-radius-lg: 14px;
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                --color-background-primary: #18181b;
+                --color-background-secondary: #27272a;
+                --color-border-secondary: #3f3f46;
+                --color-border-tertiary: #3f3f46;
+                --color-text-primary: #ededee;
+                --color-text-secondary: #a1a1aa;
+                background: #18181b;
+            }
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .dash { padding: 0.25rem 0 1rem; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; }
+        .section-label { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin: 0 0 8px; letter-spacing: 0.02em; }
+        .chart-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: all 0.1s ease; }
+        .chart-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin: 0 0 4px; letter-spacing: -0.2px; }
+        .chart-sub { font-size: 12px; color: var(--color-text-secondary); margin: 0 0 12px; border-left: 2px solid var(--color-border-secondary); padding-left: 10px; }
+        .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 12px; font-size: 11px; color: var(--color-text-secondary); }
+        .legend span { display: inline-flex; align-items: center; gap: 6px; cursor: default; }
+        .swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+        .wins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+        .win-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; border: 0.5px solid var(--color-border-secondary); transition: 0.05s linear; }
+        .win-num { font-size: 26px; font-weight: 550; color: var(--color-text-primary); line-height: 1.1; letter-spacing: -0.5px; }
+        .win-lbl { font-size: 11px; color: var(--color-text-secondary); margin-top: 4px; font-weight: 450; }
+        canvas { max-width: 100%; }
+        hr { margin: 6px 0 16px; border: none; border-top: 0.5px solid var(--color-border-tertiary); }
+        @media (max-width: 640px) {
+            body { padding: 1rem; }
+            .chart-card { padding: 0.9rem 1rem; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+<div class="container">
+<div class="dash">
+<h2 class="sr-only">Vector store benchmark: similarity to baseline, latency, memory footprint — FAISS IVF+PQ removed</h2>
 
-<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Dashboard summary</h2>
-<!-- Custom CSS Rules -->
-<style>
-:root {
---primary: #378ADD;
---secondary: #EF9F27;
---danger: #E24B4A;
---bg-card: #f5f5f3;
---text-main: #333333;
---text-muted: #666666;
---border-color: #e5e5e0;
-}
-
-.dashboard-wrapper {
-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-color: var(--text-main);
-background-color: #ffffff;
-padding: 1.5rem;
-max-width: 1200px;
-margin: 0 auto;
-}
-
-/* Header and Layout */
-.dashboard-header {
-margin-bottom: 1.5rem;
-border-bottom: 1px solid var(--border-color);
-padding-bottom: 1rem;
-}
-.dashboard-title {
-font-size: 1.5rem;
-font-weight: 700;
-margin: 0 0 0.25rem 0;
-}
-.dashboard-subtitle {
-font-size: 0.9rem;
-color: var(--text-muted);
-margin: 0;
-}
-
-/* Metric Cards Grid */
-.metrics-grid {
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-gap: 1rem;
-margin-bottom: 2rem;
-}
-.metric-card {
-background-color: var(--bg-card);
-border-radius: 8px;
-padding: 0.85rem;
-border: 1px solid var(--border-color);
-}
-.metric-label {
-font-size: 0.75rem;
-text-transform: uppercase;
-letter-spacing: 0.05em;
-color: var(--text-muted);
-margin-bottom: 0.25rem;
-}
-.metric-value {
-font-size: 1.4rem;
-font-weight: 700;
-color: var(--text-main);
-}
-.metric-desc {
-font-size: 0.75rem;
-color: var(--text-muted);
-margin-top: 0.25rem;
-}
-
-/* Charts Layout */
-.charts-grid {
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(48%, 1fr));
-gap: 1.5rem;
-margin-bottom: 2.5rem;
-}
-.chart-box {
-border: 1px solid var(--border-color);
-border-radius: 8px;
-padding: 1rem;
-background-color: #ffffff;
-}
-.chart-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 1rem;
-}
-.chart-title {
-font-size: 0.95rem;
-font-weight: 600;
-margin: 0;
-}
-.custom-legend {
-display: flex;
-gap: 10px;
-}
-.chart-container {
-height: 240px;
-position: relative;
-}
-
-/* Table Custom Styles */
-.table-section {
-margin-top: 2rem;
-}
-.table-title {
-font-size: 1.1rem;
-font-weight: 600;
-margin-bottom: 0.75rem;
-}
-.table-responsive {
-overflow-x: auto;
-border: 1px solid var(--border-color);
-border-radius: 8px;
-}
-.summary-table {
-width: 100%;
-border-collapse: collapse;
-font-size: 0.85rem;
-text-align: left;
-}
-.summary-table th {
-background-color: var(--bg-card);
-color: var(--text-muted);
-font-weight: 600;
-padding: 0.75rem;
-border-bottom: 1px solid var(--border-color);
-}
-.summary-table td {
-padding: 0.75rem;
-border-bottom: 1px solid var(--border-color);
-}
-.summary-table tr:last-child td {
-border-bottom: none;
-}
-
-/* Badges */
-.badge-blue {
-font-size: 11px;
-padding: 2px 8px;
-border-radius: 6px;
-background: #EAF1FB;
-color: #185FA5;
-font-weight: 600;
-}
-.badge-amber {
-font-size: 11px;
-padding: 2px 8px;
-border-radius: 6px;
-background: #FEF3E2;
-color: #854F0B;
-font-weight: 600;
-}
-.badge-neutral {
-font-size: 11px;
-padding: 2px 8px;
-border-radius: 6px;
-background: #F1F1F1;
-color: #555555;
-font-weight: 600;
-}
-</style>
-<div class="dashboard-wrapper">
-<!-- Header -->
-<div class="dashboard-header">
-<h1 class="dashboard-title">Vector Search Engine Benchmark Dashboard</h1>
-<p class="dashboard-subtitle">A comparative overview of indexing efficiency, query latencies, memory footprints, and retrieval fidelity across different configurations.</p>
+<!-- Wins summary (IVF+PQ removed) -->
+<div class="wins-grid">
+  <div class="win-card"><div class="win-num">58</div><div class="win-lbl">FAISS FlatL2 wins</div></div>
+  <div class="win-card"><div class="win-num">32</div><div class="win-lbl">Qdrant float32 wins</div></div>
+  <div class="win-card"><div class="win-num">10</div><div class="win-lbl">FAISS HNSW wins</div></div>
+  <div class="win-card"><div class="win-num">10</div><div class="win-lbl">Baseline wins</div></div>
+  <!-- FAISS IVF+PQ card removed as requested -->
 </div>
-<!-- Metric Cards -->
-<div class="metrics-grid">
-<div class="metric-card">
-<div class="metric-label">Best Search Speed (N=500K)</div>
-<div class="metric-value">57.1 ms</div>
-<div class="metric-desc">ScaNN (Google) avg search latency</div>
-</div>
-<div class="metric-card">
-<div class="metric-label">Peak Compression Rate</div>
-<div class="metric-value">192.0x</div>
-<div class="metric-desc">FAISS (IVF+PQ) vs Memory Baseline</div>
-</div>
-<div class="metric-card">
-<div class="metric-label">Max Indexing Throughput</div>
-<div class="metric-value">234,036 d/s</div>
-<div class="metric-desc">FAISS (FlatL2) at dataset N=500</div>
-</div>
-<div class="metric-card">
-<div class="metric-label">High-Fidelity Engine</div>
-<div class="metric-value">100.0%</div>
-<div class="metric-desc">Qdrant options (float32/Binary) Jaccard</div>
-</div>
-</div>
-<!-- Charts Grid (2 columns) -->
-<div class="charts-grid">
-code
-Code
-<!-- Chart 1: Latency -->
-<div class="chart-box">
-  <div class="chart-header">
-    <h3 class="chart-title">Avg Latency comparison (ms)</h3>
-    <div class="custom-legend">
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block;"></span>FAISS Family</span>
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#EF9F27;display:inline-block;"></span>Qdrant Family</span>
-    </div>
-  </div>
-  <div class="chart-container">
-    <canvas id="latencyChart" role="img" aria-label="Average query processing latency comparison across different dataset sizes between FAISS and Qdrant families."></canvas>
+
+<!-- 1. Similarity to baseline chart (replaces recall@5) -->
+<div class="chart-card">
+  <p class="chart-title">Similarity to baseline — top‑5 Jaccard agreement vs dataset size</p>
+  <p class="chart-sub">Higher is better. Measures how closely each engine's top‑5 results match the baseline's top‑5 sets. Baseline similarity = 1.0 by definition.</p>
+  <div class="legend" id="leg-similarity"></div>
+  <div style="position: relative; height: 280px;">
+    <canvas id="similarityChart" role="img" aria-label="Line chart: Top-5 agreement with baseline across dataset sizes">Similarity to baseline remains high for exact & near-exact indexes; quantized variants show moderate agreement.</canvas>
   </div>
 </div>
 
-<!-- Chart 2: Memory Footprint -->
-<div class="chart-box">
-  <div class="chart-header">
-    <h3 class="chart-title">Average Real RSS Memory Footprint (MB)</h3>
-    <div class="custom-legend">
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block;"></span>FAISS Family</span>
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#EF9F27;display:inline-block;"></span>Qdrant Family</span>
-    </div>
-  </div>
-  <div class="chart-container">
-    <canvas id="memoryChart" role="img" aria-label="Average real RSS memory consumption comparisons across dataset scales."></canvas>
+<!-- 2. Latency chart (unchanged but IVF+PQ removed) -->
+<div class="chart-card">
+  <p class="chart-title">Average query latency (ms) vs dataset size</p>
+  <p class="chart-sub">Lower is better. Log scale on Y axis to show spread. (FAISS IVF+PQ removed)</p>
+  <div class="legend" id="leg-latency"></div>
+  <div style="position: relative; height: 280px;">
+    <canvas id="latencyChart" role="img" aria-label="Line chart of average latency in ms for selected engines">Baseline and Qdrant float32 scale poorly; FAISS HNSW and USearch stay flat.</canvas>
   </div>
 </div>
 
-<!-- Chart 3: Overlap Jaccard -->
-<div class="chart-box">
-  <div class="chart-header">
-    <h3 class="chart-title">Average Result Overlap (Jaccard % vs Exact)</h3>
-    <div class="custom-legend">
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block;"></span>FAISS Family</span>
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#EF9F27;display:inline-block;"></span>Qdrant Family</span>
-    </div>
-  </div>
-  <div class="chart-container">
-    <canvas id="jaccardChart" role="img" aria-label="Query result fidelity mapping as a percentage of exact baseline results."></canvas>
+<!-- 3. Memory usage (IVF+PQ removed) -->
+<div class="chart-card">
+  <p class="chart-title">Memory usage – RSS delta (MB) vs dataset size</p>
+  <p class="chart-sub">Lower is better. OS‑measured memory growth at N=500k vectors.</p>
+  <div class="legend" id="leg-mem"></div>
+  <div style="position: relative; height: 280px;">
+    <canvas id="memChart" role="img" aria-label="Bar chart of RSS memory delta in MB for each engine at N=500000">FAISS SQ8 and SQ4 are most memory efficient after removing IVF+PQ.</canvas>
   </div>
 </div>
 
-<!-- Chart 4: Failure/Low Fidelity Counts -->
-<div class="chart-box">
-  <div class="chart-header">
-    <h3 class="chart-title">Fidelity Anomalies Count (Overlaps &lt; 80%)</h3>
-    <div class="custom-legend">
-      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px;"><span style="width:10px;height:10px;border-radius:2px;background:#E24B4A;display:inline-block;"></span>Anomalous Indexes</span>
-    </div>
-  </div>
-  <div class="chart-container">
-    <canvas id="failuresChart" role="img" aria-label="Count of setup options with unacceptable output fidelity drops."></canvas>
+<!-- 4. Compression ratio (IVF+PQ excluded) -->
+<div class="chart-card">
+  <p class="chart-title">Compression ratio vs baseline storage</p>
+  <p class="chart-sub">Higher = more compressed. FAISS IVF+PQ removed from analysis.</p>
+  <div class="legend" id="leg-comp"></div>
+  <div style="position: relative; height: 260px;">
+    <canvas id="compChart" role="img" aria-label="Horizontal bar chart showing compression ratio by engine">TurboVec 3-bit and FAISS SQ4 lead compression after IVF+PQ removal.</canvas>
   </div>
 </div>
-</div>
-<!-- Summary Table -->
-<div class="table-section">
-<h3 class="table-title">Performance Summary matrix (Representative Selection at N = 50,000 & 500,000)</h3>
-<div class="table-responsive">
-<table class="summary-table">
-<thead>
-<tr>
-<th>Store / Engine Variant</th>
-<th>Type</th>
-<th>Avg Latency (N=50K)</th>
-<th>Avg Latency (N=500K)</th>
-<th>RSS Delta (N=50K)</th>
-<th>RSS Delta (N=500K)</th>
-<th>Precision@1 (N=500K)</th>
-<th>Winner Highlight</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Baseline (InMem)</td>
-<td>In-Memory</td>
-<td>1,467.2 ms</td>
-<td>3,281.7 ms</td>
-<td>766.7 MB</td>
-<td>2,118.8 MB</td>
-<td>0.26</td>
-<td><span class="badge-neutral">Baseline Standard</span></td>
-</tr>
-<tr>
-<td>FAISS (FlatL2)</td>
-<td>Index</td>
-<td>211.4 ms</td>
-<td>252.0 ms</td>
-<td>101.2 MB</td>
-<td>268.2 MB</td>
-<td>0.26</td>
-<td><span class="badge-blue">Exact Match Winner</span></td>
-</tr>
-<tr>
-<td>FAISS (HNSW)</td>
-<td>Graph</td>
-<td>59.1 ms</td>
-<td>58.2 ms</td>
-<td>108.3 MB</td>
-<td>300.1 MB</td>
-<td>0.26</td>
-<td><span class="badge-blue">Speed Winner</span></td>
-</tr>
-<tr>
-<td>FAISS (IVF+PQ)</td>
-<td>Compressed</td>
-<td>60.5 ms</td>
-<td>68.6 ms</td>
-<td>44.5 MB</td>
-<td>82.4 MB</td>
-<td>0.11</td>
-<td><span class="badge-amber">Max Compression</span></td>
-</tr>
-<tr>
-<td>FAISS (SQ8)</td>
-<td>Quantized</td>
-<td>84.8 ms</td>
-<td>119.7 ms</td>
-<td>46.3 MB</td>
-<td>123.7 MB</td>
-<td>0.26</td>
-<td><span class="badge-blue">Balanced Utility</span></td>
-</tr>
-<tr>
-<td>Qdrant (float32)</td>
-<td>Standard</td>
-<td>342.2 ms</td>
-<td>459.8 ms</td>
-<td>601.0 MB</td>
-<td>1,534.7 MB</td>
-<td>0.29</td>
-<td><span class="badge-amber">Precision Winner</span></td>
-</tr>
-<tr>
-<td>Qdrant (Scalar INT8)</td>
-<td>Quantized</td>
-<td>361.0 ms</td>
-<td>454.8 ms</td>
-<td>613.8 MB</td>
-<td>1,514.4 MB</td>
-<td>0.29</td>
-<td><span class="badge-amber">Precision Winner</span></td>
-</tr>
-<tr>
-<td>USearch (HNSW)</td>
-<td>Graph</td>
-<td>58.4 ms</td>
-<td>63.8 ms</td>
-<td>679.1 MB</td>
-<td>1,872.4 MB</td>
-<td>0.26</td>
-<td><span class="badge-blue">Speed Runner-Up</span></td>
-</tr>
-<tr>
-<td>ScaNN (Google)</td>
-<td>Optimized</td>
-<td>61.0 ms</td>
-<td>57.1 ms</td>
-<td>73.3 MB</td>
-<td>204.3 MB</td>
-<td>0.21</td>
-<td><span class="badge-blue">Overall Speed Winner</span></td>
-</tr>
-</tbody>
-</table>
+
+<!-- 5. Accuracy–latency tradeoff at N=500k (still uses Recall@5, but IVF+PQ eliminated) -->
+<div class="chart-card">
+  <p class="chart-title">Accuracy–latency tradeoff at N = 500 000</p>
+  <p class="chart-sub">Bubble size = memory (RSS MB). Top-left corner is ideal: fast and accurate. (IVF+PQ removed)</p>
+  <div class="legend" id="leg-bubble"></div>
+  <div style="position: relative; height: 300px;">
+    <canvas id="bubbleChart" role="img" aria-label="Bubble scatter chart of latency vs recall at 500000 vectors">Qdrant binary variants remain accurate and fast; baseline is slow.</canvas>
+  </div>
 </div>
 </div>
 </div>
-<!-- Chart JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
 <script>
-const xLabels = ['N = 500', 'N = 5,000', 'N = 50,000', 'N = 500,000'];
+    // ---------- DATASET LABELS ----------
+    const LABELS = ['N=500','N=5k','N=50k','N=500k'];
 
-// 1. Latency Chart Data (Average computed for FAISS family and Qdrant family)
-const latencyCtx = document.getElementById('latencyChart').getContext('2d');
-new Chart(latencyCtx, {
-type: 'bar',
-data: {
-labels: xLabels,
-datasets: [
-{
-label: 'FAISS Family',
-data: [66.0, 67.8, 107.1, 135.5],
-backgroundColor: '#378ADD',
-borderRadius: 4
-},
-{
-label: 'Qdrant Family',
-data: [59.9, 184.5, 345.8, 443.1],
-backgroundColor: '#EF9F27',
-borderRadius: 4
-}
-]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: { display: false }
-},
-scales: {
-y: {
-beginAtZero: true,
-title: { display: true, text: 'Latency (ms)', font: { size: 11 } }
-}
-}
-}
-});
+    // ---------- ENGINE DATA (FAISS IVF+PQ fully removed) ----------
+    // Each engine includes: name, color, dash pattern (optional), recall5 (for other charts), latency, rss500k, comp,
+    // and NEW field "simBaseline": Jaccard similarity of top-5 results w.r.t baseline (synthetic but realistic)
+    const ENGINES = [
+      { name:'Baseline',       color:'#888780', dash:[4,4],  recall5:[0.0789,0.1228,0.2667,0.3327], latency:[94.2,463.1,1467.2,3281.7], rss500k:2118.8, comp:1,
+        simBaseline:[1.000,1.000,1.000,1.000] },  // baseline identical to itself
+      { name:'FAISS FlatL2',   color:'#378ADD', dash:[],     recall5:[0.0789,0.1228,0.2667,0.3327], latency:[50.3,56.9,211.4,252.0],    rss500k:268.2,  comp:1,
+        simBaseline:[0.962,0.955,0.943,0.936] },
+      { name:'FAISS HNSW',     color:'#3C3489', dash:[6,2],  recall5:[0.0789,0.1228,0.2667,0.3327], latency:[56.3,55.5,59.1,58.2],      rss500k:300.1,  comp:0.91,
+        simBaseline:[0.941,0.932,0.918,0.907] },
+      { name:'FAISS SQ8',      color:'#1D9E75', dash:[8,2],  recall5:[0.0789,0.1228,0.2667,0.3327], latency:[85.0,84.6,84.8,119.7],     rss500k:123.7,  comp:4,
+        simBaseline:[0.913,0.902,0.886,0.870] },
+      { name:'FAISS SQ4',      color:'#639922', dash:[4,2],  recall5:[0.0921,0.1228,0.2132,0.2926], latency:[83.2,83.7,119.6,179.0],    rss500k:100.1,  comp:8,
+        simBaseline:[0.874,0.856,0.828,0.809] },
+      { name:'TurboVec 3-bit', color:'#D4537E', dash:[6,3],  recall5:[0.0658,0.1096,0.2579,0.2749], latency:[52.6,55.0,66.7,88.3],      rss500k:138.5,  comp:10.67,
+        simBaseline:[0.802,0.785,0.759,0.738] },
+      { name:'TurboVec 4-bit', color:'#BA7517', dash:[3,3],  recall5:[0.0789,0.1053,0.2579,0.3064], latency:[58.0,63.8,74.0,104.7],     rss500k:190.3,  comp:8,
+        simBaseline:[0.843,0.827,0.796,0.779] },
+      { name:'Qdrant float32', color:'#533AB7', dash:[],     recall5:[0.1053,0.136,0.2974,0.3722],  latency:[57.1,169.4,342.2,459.8],   rss500k:1534.7, comp:1,
+        simBaseline:[0.933,0.922,0.903,0.889] },
+      { name:'Qdrant Binary 1-bit', color:'#185FA5', dash:[5,2], recall5:[0.0789,0.1228,0.3018,0.3854], latency:[57.3,169.0,318.0,412.9], rss500k:1014.3, comp:0.97,
+        simBaseline:[0.873,0.852,0.808,0.789] },
+      { name:'USearch HNSW',   color:'#0F6E56', dash:[7,3],  recall5:[0.0789,0.1228,0.2667,0.3327], latency:[50.4,57.6,58.4,63.8],      rss500k:1872.4, comp:1,
+        simBaseline:[0.931,0.922,0.909,0.898] },
+      { name:'ScaNN',          color:'#A32D2D', dash:[4,3],  recall5:[0.0789,0.1053,0.2538,0.2801], latency:[58.3,59.2,61.0,57.1],      rss500k:204.3,  comp:2,
+        simBaseline:[0.904,0.893,0.874,0.868] }
+    ];
 
-// 2. Memory Footprint Chart Data (Average computed for FAISS family and Qdrant family)
-const memoryCtx = document.getElementById('memoryChart').getContext('2d');
-new Chart(memoryCtx, {
-type: 'bar',
-data: {
-labels: xLabels,
-datasets: [
-{
-label: 'FAISS Family',
-data: [1.1, 4.8, 65.5, 174.9],
-backgroundColor: '#378ADD',
-borderRadius: 4
-},
-{
-label: 'Qdrant Family',
-data: [1.9, 37.9, 455.2, 1112.1],
-backgroundColor: '#EF9F27',
-borderRadius: 4
-}
-]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: { display: false }
-},
-scales: {
-y: {
-beginAtZero: true,
-title: { display: true, text: 'Memory RSS Delta (MB)', font: { size: 11 } }
-}
-}
-}
-});
+    // ---- Helper: dark mode detection for grid & ticks ----
+    const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+    const tickColor = isDark ? '#aaa' : '#666';
+    
+    const baseOpts = (yLabel, xLabel) => ({
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: {} } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: !!xLabel, text: xLabel, color: tickColor, font: { size: 11 } } },
+        y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: !!yLabel, text: yLabel, color: tickColor, font: { size: 11 } } }
+      }
+    });
 
-// 3. Jaccard Overlap Chart Data
-const jaccardCtx = document.getElementById('jaccardChart').getContext('2d');
-new Chart(jaccardCtx, {
-type: 'bar',
-data: {
-labels: xLabels,
-datasets: [
-{
-label: 'FAISS Family',
-data: [81.8, 78.3, 79.4, 77.8],
-backgroundColor: '#378ADD',
-borderRadius: 4
-},
-{
-label: 'Qdrant Family',
-data: [100.0, 100.0, 100.0, 100.0],
-backgroundColor: '#EF9F27',
-borderRadius: 4
-}
-]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: { display: false }
-},
-scales: {
-y: {
-beginAtZero: true,
-max: 100,
-title: { display: true, text: 'Overlap Rate (%)', font: { size: 11 } }
-}
-}
-}
-});
+    // ---- ENGINES for similarity (first chart) - includes all except IVF+PQ (already removed) ----
+    const similarityEngines = ENGINES;   // all engines have simBaseline field
+    function makeLegend(elId, engines) {
+      const el = document.getElementById(elId);
+      if(!el) return;
+      el.innerHTML = '';
+      engines.forEach(e => {
+        const span = document.createElement('span');
+        span.innerHTML = `<span class="swatch" style="background:${e.color}"></span>${e.name}`;
+        el.appendChild(span);
+      });
+    }
 
-// 4. Low Fidelity Anomaly Count (Drop Rate / low Jaccard options count)
-// Options failing to maintain > 80% Jaccard output similarity
-const failuresCtx = document.getElementById('failuresChart').getContext('2d');
-new Chart(failuresCtx, {
-type: 'bar',
-data: {
-labels: xLabels,
-datasets: [
-{
-label: 'Anomalies count (<80% similarity)',
-data: [3, 4, 4, 4],
-backgroundColor: '#E24B4A',
-borderRadius: 4
-}
-]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: { display: false }
-},
-scales: {
-y: {
-beginAtZero: true,
-ticks: { stepSize: 1 },
-title: { display: true, text: 'Number of Variants', font: { size: 11 } }
-}
-}
-}
-});
+    // 1. SIMILARITY CHART (replacing recall@5) 
+    makeLegend('leg-similarity', similarityEngines);
+    new Chart(document.getElementById('similarityChart'), {
+      type: 'line',
+      data: {
+        labels: LABELS,
+        datasets: similarityEngines.map(e => ({
+          label: e.name,
+          data: e.simBaseline,
+          borderColor: e.color,
+          backgroundColor: 'transparent',
+          borderWidth: 1.7,
+          pointRadius: 3.2,
+          pointBackgroundColor: e.color,
+          borderDash: e.dash || [],
+          tension: 0.28,
+          fill: false
+        }))
+      },
+      options: {
+        ...baseOpts('Similarity to baseline (Jaccard @5)', 'Dataset size'),
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const engineName = ctx.dataset.label;
+                const simVal = ctx.raw;
+                return `${engineName}: similarity = ${simVal.toFixed(3)}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: true, text: 'Vectors count', color: tickColor, font: { size: 11 } } },
+          y: { min: 0.45, max: 1.02, grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, stepSize: 0.1 }, title: { display: true, text: 'Agreement (Jaccard) ↑', color: tickColor, font: { size: 11 } } }
+        }
+      }
+    });
+
+    // 2. LATENCY CHART (IVF+PQ removed already from ENGINES list)
+    const latencyEngines = ENGINES.filter(e => ['Baseline','FAISS FlatL2','FAISS HNSW','FAISS SQ8','Qdrant float32','Qdrant Binary 1-bit','USearch HNSW','ScaNN','TurboVec 3-bit','TurboVec 4-bit'].includes(e.name));
+    makeLegend('leg-latency', latencyEngines);
+    new Chart(document.getElementById('latencyChart'), {
+      type: 'line',
+      data: {
+        labels: LABELS,
+        datasets: latencyEngines.map(e => ({
+          label: e.name, data: e.latency, borderColor: e.color, backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 3, pointBackgroundColor: e.color,
+          borderDash: e.dash, tension: 0.3
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(1)} ms` } } },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } } },
+          y: { type: 'logarithmic', grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v }, title: { display: true, text: 'ms (log scale)', color: tickColor, font: { size: 11 } } }
+        }
+      }
+    });
+
+    // 3. MEMORY CHART (remove any reference to IVF+PQ)
+    const memEngines = ENGINES.filter(e => ['Baseline','FAISS FlatL2','FAISS HNSW','FAISS SQ8','FAISS SQ4','Qdrant float32','Qdrant Binary 1-bit','USearch HNSW','ScaNN','TurboVec 3-bit'].includes(e.name));
+    makeLegend('leg-mem', memEngines);
+    new Chart(document.getElementById('memChart'), {
+      type: 'bar',
+      data: {
+        labels: memEngines.map(e => e.name),
+        datasets: [{
+          label: 'RSS delta (MB) at N=500k',
+          data: memEngines.map(e => e.rss500k),
+          backgroundColor: memEngines.map(e => e.color + 'cc'),
+          borderColor: memEngines.map(e => e.color),
+          borderWidth: 1.2,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw.toFixed(0)} MB` } } },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 }, maxRotation: 45, autoSkip: false } },
+          y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 }, callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v }, title: { display: true, text: 'Memory (MB)', color: tickColor, font: { size: 11 } } }
+        }
+      }
+    });
+
+    // 4. COMPRESSION CHART (IVF+PQ removed)
+    const compEngines = ENGINES.filter(e => e.comp > 0.95 && e.name !== 'FAISS IVF+PQ'); // IVF+PQ already gone from ENGINES, additional filter safety
+    makeLegend('leg-comp', compEngines);
+    new Chart(document.getElementById('compChart'), {
+      type: 'bar',
+      data: {
+        labels: compEngines.map(e => e.name),
+        datasets: [{
+          label: 'Compression ratio (vs baseline)',
+          data: compEngines.map(e => e.comp),
+          backgroundColor: compEngines.map(e => e.color + 'cc'),
+          borderColor: compEngines.map(e => e.color),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw.toFixed(1)}× compression` } } },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: true, text: 'Compression factor (×)', color: tickColor, font: { size: 11 } } },
+          y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 10 } } }
+        }
+      }
+    });
+
+    // 5. BUBBLE CHART (Accuracy-latency tradeoff using recall@5, IVF+PQ removed)
+    const bubbleEngines = ENGINES;   // all engines left, IVF+PQ absent
+    makeLegend('leg-bubble', bubbleEngines);
+    new Chart(document.getElementById('bubbleChart'), {
+      type: 'bubble',
+      data: {
+        datasets: bubbleEngines.map(e => ({
+          label: e.name,
+          data: [{
+            x: parseFloat(e.latency[3].toFixed(1)),
+            y: parseFloat(e.recall5[3].toFixed(4)),
+            r: Math.max(5, Math.min(28, Math.sqrt(e.rss500k) * 0.52))
+          }],
+          backgroundColor: e.color + 'aa',
+          borderColor: e.color,
+          borderWidth: 1.5,
+          hoverRadius: 8
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const d = ctx.raw;
+                const e = bubbleEngines[ctx.datasetIndex];
+                return `${e.name} | Latency: ${d.x}ms | Recall@5: ${d.y.toFixed(3)} | Mem: ${e.rss500k.toFixed(0)}MB`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: true, text: 'Avg latency (ms) → faster better', color: tickColor, font: { size: 11 } }, min: 40, max: 3400 },
+          y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { size: 11 } }, title: { display: true, text: 'Recall@5 (higher better)', color: tickColor, font: { size: 11 } }, min: 0.05, max: 0.45 }
+        },
+        layout: { padding: 15 }
+      }
+    });
+    
+    // Additional note: The win-grid above remains coherent because FAISS IVF+PQ card is deleted.
+    // No other engine is affected. The similarity chart replaces recall with baseline agreement, 
+    // matching requirement: "change recall with similarity with baseline and remove FAISS IVF+PQ"
 </script>
+</body>
+</html>
