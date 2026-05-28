@@ -19,8 +19,8 @@ jobs:
           fetch-depth: 0
       - name: Prepare page artifact
         run: |
-          mkdir -p public/interfaces
-          cp interfaces/stats.html public/interfaces/stats.html
+          mkdir -p public
+          cp interfaces/stats.html public/index.html
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
