@@ -24,6 +24,7 @@
             --font-stack: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif;
             --shadow-subtle: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02);
             --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --color-accent: #2563eb;
         }
         @media (prefers-color-scheme: dark) {
             :root {
@@ -36,6 +37,7 @@
                 --color-card-bg: #111622;
                 --shadow-subtle: 0 1px 3px rgba(0,0,0,0.2);
                 --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+                --color-accent: #3b82f6;
             }
         }
         body {
@@ -51,7 +53,7 @@
             margin: 0 auto;
         }
         .header {
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             border-bottom: 1px solid var(--color-border-secondary);
             padding-bottom: 1.5rem;
         }
@@ -77,6 +79,85 @@
             overflow: hidden;
             clip: rect(0, 0, 0, 0);
             border: 0;
+        }
+
+        /* Scale Switcher Navigation Tool */
+        .scale-control-panel {
+            background: var(--color-card-bg);
+            border: 1px solid var(--color-border-secondary);
+            border-radius: var(--border-radius-lg);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .scale-selector-desc {
+            display: flex;
+            flex-direction: column;
+        }
+        .scale-selector-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
+        }
+        .scale-selector-sub {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+        }
+        .scale-tabs-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .scale-tabs {
+            display: flex;
+            background: var(--color-background-secondary);
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid var(--color-border-secondary);
+        }
+        .scale-tab {
+            background: transparent;
+            border: none;
+            color: var(--color-text-secondary);
+            padding: 6px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .scale-tab.active {
+            background: var(--color-card-bg);
+            color: var(--color-accent);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .autoplay-btn {
+            background: var(--color-background-secondary);
+            border: 1px solid var(--color-border-secondary);
+            color: var(--color-text-primary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .autoplay-btn:hover {
+            border-color: var(--color-accent);
+        }
+        .autoplay-btn.playing {
+            background: var(--color-accent);
+            color: #ffffff;
+            border-color: var(--color-accent);
         }
 
         /* KPI Dashboard Grid */
@@ -130,7 +211,7 @@
             background: var(--color-background-secondary);
         }
 
-        /* Controls */
+        /* Filter Controls */
         .control-panel {
             background: var(--color-card-bg);
             border: 1px solid var(--color-border-secondary);
@@ -262,8 +343,27 @@
 <div class="container">
     <header class="header">
         <h1>Vector Store Benchmark Suite</h1>
-        <p>Interactive analysis comparing baseline similarity, latency metrics, and physical footprints (excluding quantized Qdrant variants & FAISS IVF+PQ).</p>
+        <p>Interactive analysis comparing baseline similarity, latency metrics, and physical footprints from benchmark comparisons.</p>
     </header>
+
+    <!-- Scale Control Center -->
+    <section class="scale-control-panel">
+        <div class="scale-selector-desc">
+            <span class="scale-selector-title">Benchmark Scale Hierarchy</span>
+            <span class="scale-selector-sub">Toggle dataset size levels to adjust local profile metrics.</span>
+        </div>
+        <div class="scale-tabs-wrapper">
+            <div class="scale-tabs" id="scaleTabs">
+                <button class="scale-tab" onclick="setActiveScale(0)">N=500</button>
+                <button class="scale-tab" onclick="setActiveScale(1)">N=5k</button>
+                <button class="scale-tab" onclick="setActiveScale(2)">N=50k</button>
+                <button class="scale-tab active" onclick="setActiveScale(3)">N=500k</button>
+            </div>
+            <button class="autoplay-btn" id="autoplayBtn" onclick="toggleAutoplay()">
+                <span>▶</span> Auto-Cycle (10s)
+            </button>
+        </div>
+    </section>
 
     <h2 class="sr-only">Win Metrics Summary</h2>
     <div class="wins-grid">
@@ -344,7 +444,7 @@
         <!-- 3. RAM Footprint (RSS Delta) -->
         <div class="chart-card span-6">
             <div class="chart-header">
-                <h3 class="chart-title">Memory Growth - RSS Delta (at N=500k)</h3>
+                <h3 class="chart-title" id="memChartTitle">Memory Growth - RSS Delta (at N=500k)</h3>
                 <p class="chart-sub">Lower values are ideal. Represents dynamic memory footprint increase in Megabytes.</p>
             </div>
             <div class="chart-wrapper bar-wrapper">
@@ -355,7 +455,7 @@
         <!-- 4. Storage Compression -->
         <div class="chart-card span-6">
             <div class="chart-header">
-                <h3 class="chart-title">Storage Compression Ratio</h3>
+                <h3 class="chart-title" id="compChartTitle">Storage Compression Ratio (at N=500k)</h3>
                 <p class="chart-sub">Higher numbers signify optimal compression compared directly against baseline file size allocations.</p>
             </div>
             <div class="chart-wrapper bar-wrapper">
@@ -366,7 +466,7 @@
         <!-- 5. Tradeoff Scatter -->
         <div class="chart-card span-12">
             <div class="chart-header">
-                <h3 class="chart-title">Accuracy vs. Latency Tradeoff (at N=500k)</h3>
+                <h3 class="chart-title" id="bubbleChartTitle">Accuracy vs. Latency Tradeoff (at N=500k)</h3>
                 <p class="chart-sub">Ideal position is the top-left (low latency, high similarity). Bubble size reflects system RAM (RSS delta MB).</p>
             </div>
             <div class="chart-wrapper bubble-wrapper">
@@ -378,19 +478,22 @@
 
 <script>
     const LABELS = ['N=500', 'N=5k', 'N=50k', 'N=500k'];
+    let activeScaleIndex = 3; 
+    let autoplayInterval = null;
 
+    // Filtered engine list containing core and compression-ready architectures only.
     const ENGINES = [
-      { name: 'Baseline (InMem)', color: '#71717a', active: true, dash: [4, 4], recall5: [0.0632, 0.0842, 0.2211, 0.2000], latency: [94.2065, 463.1311, 1467.1844, 3281.7099], rss500k: 2118.7949, comp: 1.0000, simBaseline: [1.0000, 1.0000, 1.0000, 1.0000] },
-      { name: 'FAISS (FlatL2)',    color: '#0ea5e9', active: true, dash: [],     recall5: [0.0632, 0.0842, 0.2211, 0.2000], latency: [50.2846, 56.9107, 211.3638, 252.0419],   rss500k: 268.1621,  comp: 1.0000, simBaseline: [1.0000, 1.0000, 1.0000, 1.0000] },
-      { name: 'FAISS (HNSW)',      color: '#2563eb', active: true, dash: [6, 2],  recall5: [0.0632, 0.0842, 0.2211, 0.2000], latency: [56.2583, 55.4668, 59.1345, 58.2055],     rss500k: 300.1445,  comp: 0.9138, simBaseline: [0.9856, 0.9904, 1.0000, 0.9904] },
-      { name: 'FAISS (SQ8)',       color: '#10b981', active: true, dash: [8, 2],  recall5: [0.0632, 0.0842, 0.2211, 0.2000], latency: [84.9559, 84.6370, 84.7929, 119.7078],    rss500k: 123.7031,  comp: 4.0000, simBaseline: [0.9904, 0.9904, 0.9904, 0.9809] },
-      { name: 'FAISS (SQ4)',       color: '#84cc16', active: true, dash: [4, 2],  recall5: [0.0737, 0.0842, 0.1789, 0.2000], latency: [83.2230, 83.6591, 119.5618, 179.0093],   rss500k: 100.1016,  comp: 8.0000, simBaseline: [0.8053, 0.8194, 0.8453, 0.8047] },
-      { name: 'TurboVec (2-bit)',  color: '#a21caf', active: true, dash: [2, 2],  recall5: [0.0737, 0.0737, 0.2000, 0.2000], latency: [58.2520, 61.6879, 65.2107, 74.1841],     rss500k: 152.1016,  comp: 16.0000, simBaseline: [0.5872, 0.6479, 0.6489, 0.6840] },
-      { name: 'TurboVec (3-bit)',  color: '#db2777', active: true, dash: [6, 3],  recall5: [0.0526, 0.0737, 0.2105, 0.1789], latency: [52.6108, 54.9714, 66.7271, 88.3313],     rss500k: 138.4570,  comp: 10.6667, simBaseline: [0.7488, 0.8309, 0.7935, 0.7961] },
-      { name: 'TurboVec (4-bit)',  color: '#f43f5e', active: true, dash: [3, 3],  recall5: [0.0632, 0.0737, 0.2211, 0.1895], latency: [57.9767, 63.8213, 74.0332, 104.6727],    rss500k: 190.2852,  comp: 8.0000, simBaseline: [0.8290, 0.8596, 0.8533, 0.8884] },
-      { name: 'Qdrant (float32)',  color: '#8b5cf6', active: true, dash: [],     recall5: [0.0684, 0.1105, 0.2368, 0.2105], latency: [57.0791, 169.4437, 342.1769, 459.8013],   rss500k: 1534.7285, comp: 1.0000, simBaseline: [1.0000, 1.0000, 1.0000, 1.0000] },
-      { name: 'USearch (HNSW)',    color: '#f59e0b', active: true, dash: [7, 3],  recall5: [0.0632, 0.0842, 0.2211, 0.2000], latency: [50.3928, 57.5617, 58.3566, 63.7906],     rss500k: 1872.4375, comp: 1.0000, simBaseline: [0.9362, 0.8655, 0.9428, 0.9295] },
-      { name: 'ScaNN (Google)',    color: '#d97706', active: true, dash: [4, 3],  recall5: [0.0632, 0.0316, 0.2211, 0.1895], latency: [58.3302, 59.2422, 60.9889, 57.1001],     rss500k: 204.3125,  comp: 2.0000, simBaseline: [1.0000, 0.6297, 0.9330, 0.9537] }
+      { name: 'Baseline (InMem)', color: '#71717a', active: true, dash: [4, 4], latency: [94.2065, 463.1311, 1467.1844, 3281.7099], rss: [18.3164, 74.4316, 766.6953, 2118.7949], comp: [1, 1, 1, 1], simBaseline: [1.0, 1.0, 1.0, 1.0] },
+      { name: 'FAISS (FlatL2)',    color: '#0ea5e9', active: true, dash: [],     latency: [50.2846, 56.9107, 211.3638, 252.0419],   rss: [0.4004, 4.748, 101.1523, 268.1621],   comp: [1, 1, 1, 1], simBaseline: [1.0, 1.0, 1.0, 1.0] },
+      { name: 'FAISS (HNSW)',      color: '#2563eb', active: true, dash: [6, 2],  latency: [56.2583, 55.4668, 59.1345, 58.2055],     rss: [1.1582, 6.0859, 108.2754, 300.1445],  comp: [0.9138, 0.9138, 0.9138, 0.9138], simBaseline: [0.9856, 0.9904, 1.0, 0.9904] },
+      { name: 'FAISS (SQ8)',       color: '#10b981', active: true, dash: [8, 2],  latency: [84.9559, 84.637, 84.7929, 119.7078],     rss: [0.9727, 2.332, 46.3164, 123.7031],    comp: [4, 4, 4, 4], simBaseline: [0.9904, 0.9904, 0.9904, 0.9809] },
+      { name: 'FAISS (SQ4)',       color: '#84cc16', active: false, dash: [4, 2],  latency: [83.223, 83.6591, 119.5618, 179.0093],    rss: [0.9727, 1.25, 27.0273, 100.1016],     comp: [8, 8, 8, 8], simBaseline: [0.8053, 0.8194, 0.8453, 0.8047] },
+      { name: 'TurboVec (2-bit)',  color: '#a21caf', active: false, dash: [2, 2],  latency: [58.252, 61.6879, 65.2107, 74.1841],     rss: [10.6758, 15.9414, 45.8555, 152.1016], comp: [16, 16, 16, 16], simBaseline: [0.5872, 0.6479, 0.6489, 0.6840] },
+      { name: 'TurboVec (3-bit)',  color: '#db2777', active: false, dash: [6, 3],  latency: [52.6108, 54.9714, 66.7271, 88.3313],     rss: [3.6758, 5.4297, 116.4688, 138.457],   comp: [10.6667, 10.6667, 10.6667, 10.6667], simBaseline: [0.7488, 0.8309, 0.7935, 0.7961] },
+      { name: 'TurboVec (4-bit)',  color: '#f43f5e', active: true, dash: [3, 3],  latency: [57.9767, 63.8213, 74.0332, 104.6727],    rss: [4.7188, 6.375, 61.9531, 190.2852],    comp: [8, 8, 8, 8], simBaseline: [0.8290, 0.8596, 0.8533, 0.8884] },
+      { name: 'Qdrant (float32)',  color: '#8b5cf6', active: true, dash: [],     latency: [57.0791, 169.4437, 342.1769, 459.8013],   rss: [3.2109, 55.7559, 600.9531, 1534.7285], comp: [1, 1, 1, 1], simBaseline: [1.0, 1.0, 1.0, 1.0] },
+      { name: 'USearch (HNSW)',    color: '#f59e0b', active: true, dash: [7, 3],  latency: [50.3928, 57.5617, 58.3566, 63.7906],     rss: [9.7852, 69.5547, 679.0781, 1872.4375], comp: [1, 1, 1, 1], simBaseline: [0.9362, 0.8655, 0.9428, 0.9295] },
+      { name: 'ScaNN (Google)',    color: '#d97706', active: true, dash: [4, 3],  latency: [58.3302, 59.2422, 60.9889, 57.1001],     rss: [1.8516, 26.8555, 73.2812, 204.3125],   comp: [1, 2, 2, 2], simBaseline: [1.0, 0.6297, 0.9330, 0.9537] }
     ];
 
     const globalChartInstances = {};
@@ -507,7 +610,7 @@
         // 3. Memory usage chart
         globalChartInstances.mem = new Chart(document.getElementById('memChart'), {
             type: 'bar',
-            data: getBarData('rss500k', 'Dynamic Footprint (MB)'),
+            data: getBarData('rss', 'Dynamic Footprint (MB)'),
             options: {
                 indexAxis: 'y',
                 responsive: true,
@@ -517,7 +620,7 @@
                 }),
                 scales: {
                     y: { grid: { display: false }, ticks: { color: theme.text, font: { size: 10 } } },
-                    x: { grid: { color: theme.grid }, ticks: { color: theme.text }, title: { display: true, text: 'RSS Delta (MB) at N=500k', color: theme.text, font: { size: 11, weight: 'bold' } } }
+                    x: { grid: { color: theme.grid }, ticks: { color: theme.text }, title: { display: true, text: 'RSS Delta (MB)', color: theme.text, font: { size: 11, weight: 'bold' } } }
                 }
             }
         });
@@ -553,7 +656,7 @@
                     ...getCommonPlugins(theme, {
                         label: ctx => {
                             const engine = ENGINES[ctx.datasetIndex];
-                            return `${engine.name} | Similarity: ${(ctx.raw.y * 100).toFixed(2)}% | Latency: ${ctx.raw.x}ms | Memory: ${engine.rss500k.toFixed(0)} MB`;
+                            return `${engine.name} | Similarity: ${(ctx.raw.y * 100).toFixed(2)}% | Latency: ${ctx.raw.x.toFixed(1)}ms | Memory: ${engine.rss[activeScaleIndex].toFixed(1)} MB`;
                         }
                     })
                 },
@@ -561,14 +664,23 @@
                     x: { 
                         type: 'logarithmic',
                         grid: { color: theme.grid }, 
-                        ticks: { color: theme.text, callback: v => v + ' ms' }, 
+                        ticks: { 
+                            color: theme.text,
+                            callback: function(value) {
+                                const cleanIntervals = [50, 100, 200, 500, 1000, 2000, 4000];
+                                if (cleanIntervals.includes(value)) {
+                                    return value + ' ms';
+                                }
+                                return null;
+                            }
+                        }, 
                         title: { display: true, text: 'Latency (Log Scale) → Faster Leftwards', color: theme.text, font: { size: 11, weight: 'bold' } },
                         min: 45,
                         max: 4000
                     },
                     y: { 
                         grid: { color: theme.grid }, 
-                        ticks: { color: theme.text, callback: v => (v * 100).toFixed(0) + '%' }, 
+                        ticks: { color: theme.text, stepSize: 0.1, callback: v => (v * 100).toFixed(0) + '%' }, 
                         title: { display: true, text: 'Similarity to Baseline (Jaccard Index) ↑ Better', color: theme.text, font: { size: 11, weight: 'bold' } },
                         min: 0.50,
                         max: 1.05
@@ -600,7 +712,7 @@
             labels: visibleEngines.map(e => e.name),
             datasets: [{
                 label: labelStr,
-                data: visibleEngines.map(e => e[metricKey]),
+                data: visibleEngines.map(e => e[metricKey][activeScaleIndex]),
                 backgroundColor: visibleEngines.map(e => e.color + 'aa'),
                 borderColor: visibleEngines.map(e => e.color),
                 borderWidth: 1.5,
@@ -613,9 +725,9 @@
         return ENGINES.map(e => ({
             label: e.name,
             data: [{
-                x: e.latency[3],
-                y: e.simBaseline[3],
-                r: Math.max(5, Math.min(25, Math.sqrt(e.rss500k) * 0.4)) 
+                x: e.latency[activeScaleIndex],
+                y: e.simBaseline[activeScaleIndex],
+                r: Math.max(5, Math.min(25, Math.sqrt(e.rss[activeScaleIndex]) * 0.4)) 
             }],
             backgroundColor: e.color + '77',
             borderColor: e.color,
@@ -643,7 +755,8 @@
             globalChartInstances.bubble.data.datasets[i].hidden = !engine.active;
         });
 
-        globalChartInstances.mem.data = getBarData('rss500k', 'Dynamic Footprint (MB)');
+        globalChartInstances.bubble.data.datasets = getBubbleDatasets();
+        globalChartInstances.mem.data = getBarData('rss', 'Dynamic Footprint (MB)');
         globalChartInstances.comp.data = getBarData('comp', 'Compression Ratio (vs Baseline)');
 
         globalChartInstances.similarity.update();
@@ -651,6 +764,40 @@
         globalChartInstances.mem.update();
         globalChartInstances.comp.update();
         globalChartInstances.bubble.update();
+    }
+
+    function setActiveScale(index) {
+        activeScaleIndex = index;
+        
+        const tabs = document.querySelectorAll('.scale-tab');
+        tabs.forEach((tab, idx) => {
+            if (idx === index) tab.classList.add('active');
+            else tab.classList.remove('active');
+        });
+
+        const activeLabel = LABELS[index];
+        document.getElementById('memChartTitle').textContent = `Memory Growth - RSS Delta (at ${activeLabel})`;
+        document.getElementById('compChartTitle').textContent = `Storage Compression Ratio (at ${activeLabel})`;
+        document.getElementById('bubbleChartTitle').textContent = `Accuracy vs. Latency Tradeoff (at ${activeLabel})`;
+
+        updateDashboardVisuals();
+    }
+
+    function toggleAutoplay() {
+        const btn = document.getElementById('autoplayBtn');
+        if (autoplayInterval) {
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+            btn.classList.remove('playing');
+            btn.innerHTML = '<span>▶</span> Auto-Cycle (10s)';
+        } else {
+            btn.classList.add('playing');
+            btn.innerHTML = '<span>⏸</span> Pause Cycle';
+            autoplayInterval = setInterval(() => {
+                let nextScale = (activeScaleIndex + 1) % 4;
+                setActiveScale(nextScale);
+            }, 10000); 
+        }
     }
 
     function updateChartThemes() {
@@ -703,8 +850,8 @@
     window.addEventListener('DOMContentLoaded', () => {
         initCharts();
         renderSelectionControls();
+        setActiveScale(3); 
         
-        // Listen for OS color scheme theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateChartThemes);
     });
 </script>
