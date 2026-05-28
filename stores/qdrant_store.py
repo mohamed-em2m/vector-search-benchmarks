@@ -41,7 +41,7 @@ class QdrantStore(AbstractVectorStore):
 
         quantization = kwargs.get("quantization", None)
         print(f"Building Qdrant store with quantization={quantization}")
-        
+
         quantization_config = None
 
         if quantization == "scalar":
@@ -117,23 +117,37 @@ class QdrantStore(AbstractVectorStore):
                     query_encoding=query_encoding,
                 )
             )
+        # 1. Guard the import properly
         elif quantization == "turbo":
-            print("Using TurboQuant quantization config for Qdrant. This is an experimental feature and may not be supported in all versions of Qdrant."  # noqa: E501
-            )
-            from qdrant_client.models import (
-                TurboQuantization,
-                TurboQuantQuantizationConfig,
-                TurboQuantBitSize,
-            )
+            try:
+                from qdrant_client.models import (
+                    TurboQuantization,
+                    TurboQuantQuantizationConfig,
+                    TurboQuantBitSize,
+                )
+            except ImportError:
+                raise RuntimeError(
+                    "TurboQuant requires qdrant-client >= 1.13.0 (Qdrant server 1.18+). "
+                    "Run: pip install --upgrade qdrant-client"
+                )
 
             bits_str = str(kwargs.get("turbo_bits", "bits4")).lower()
-            bits = TurboQuantBitSize.BITS4
-            if bits_str in ("bits2", "2", "2bit", "2bits"):
-                bits = TurboQuantBitSize.BITS2
-            elif bits_str in ("bits1_5", "1.5", "1.5bit", "1.5bits"):
-                bits = TurboQuantBitSize.BITS1_5
-            elif bits_str in ("bits1", "1", "1bit", "1bits"):
-                bits = TurboQuantBitSize.BITS1
+            # Map to the canonical API strings
+            bit_map = {
+                "bits4": TurboQuantBitSize.BITS4,
+                "4": TurboQuantBitSize.BITS4,
+                "4bit": TurboQuantBitSize.BITS4,
+                "bits2": TurboQuantBitSize.BITS2,
+                "2": TurboQuantBitSize.BITS2,
+                "2bit": TurboQuantBitSize.BITS2,
+                "bits1_5": TurboQuantBitSize.BITS1_5,
+                "1.5": TurboQuantBitSize.BITS1_5,
+                "1.5bit": TurboQuantBitSize.BITS1_5,
+                "bits1": TurboQuantBitSize.BITS1,
+                "1": TurboQuantBitSize.BITS1,
+                "1bit": TurboQuantBitSize.BITS1,
+            }
+            bits = bit_map.get(bits_str, TurboQuantBitSize.BITS4)
 
             quantization_config = TurboQuantization(
                 turbo=TurboQuantQuantizationConfig(
@@ -141,7 +155,6 @@ class QdrantStore(AbstractVectorStore):
                     bits=bits,
                 )
             )
-
         col = f"bench_{uuid.uuid4().hex[:8]}"
         client = QdrantClient(":memory:")
         create_kwargs = dict(
