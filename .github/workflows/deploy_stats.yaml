@@ -20,7 +20,7 @@ jobs:
       - name: Prepare page artifact
         run: |
           mkdir -p public
-          cp interfaces/stats.html public/index.html
+          cp docs/index.html public/index.html
           touch public/.nojekyll
           echo "Contents of public directory:"
           ls -la public/
