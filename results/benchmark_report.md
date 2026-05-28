@@ -1,3 +1,5 @@
+Here is the cleaned benchmark comparison after removing all quantized versions of Qdrant (retaining only `Qdrant (float32)`) and `FAISS (IVF+PQ)` from the tables.
+
 # Benchmark Results Comparison
 
 ## Win Counts Summary
@@ -8,24 +10,14 @@ This table summarizes the 'win' allocations across different evaluation categori
 | Baseline (InMem) | 0 | 0 | 8 | 2 | 0 | 10 |
 | FAISS (FlatL2) | 40 | 3 | 0 | 0 | 15 | 58 |
 | FAISS (HNSW) | 0 | 1 | 0 | 0 | 9 | 10 |
-| FAISS (IVF+PQ) | 0 | 1 | 8 | 0 | 0 | 9 |
 | FAISS (SQ8) | 0 | 0 | 0 | 0 | 2 | 2 |
 | FAISS (SQ4) | 0 | 2 | 0 | 1 | 2 | 5 |
 | TurboVec (3-bit) | 0 | 0 | 0 | 3 | 0 | 3 |
 | TurboVec (4-bit) | 0 | 0 | 0 | 0 | 0 | 0 |
 | TurboVec (2-bit) | 0 | 0 | 0 | 1 | 0 | 1 |
 | Qdrant (float32) | 8 | 0 | 0 | 23 | 1 | 32 |
-| Qdrant (Scalar INT8) | 0 | 0 | 0 | 3 | 0 | 3 |
-| Qdrant (Product x16) | 0 | 0 | 0 | 4 | 0 | 4 |
 | USearch (HNSW) | 0 | 0 | 0 | 1 | 1 | 2 |
 | ScaNN (Google) | 0 | 0 | 0 | 2 | 1 | 3 |
-| Qdrant (Binary 1-bit) | 0 | 0 | 0 | 0 | 0 | 0 |
-| Qdrant (Binary 1.5-bit) | 0 | 0 | 0 | 0 | 0 | 0 |
-| Qdrant (Binary 2-bit Asym) | 0 | 0 | 0 | 2 | 0 | 2 |
-| Qdrant (TurboQuant 4-bit) | 0 | 0 | 0 | 0 | 0 | 0 |
-| Qdrant (TurboQuant 2-bit) | 0 | 1 | 0 | 0 | 0 | 1 |
-| Qdrant (TurboQuant 1.5-bit) | 0 | 0 | 0 | 6 | 0 | 6 |
-| Qdrant (TurboQuant 1-bit) | 0 | 0 | 0 | 0 | 1 | 1 |
 
 
 ## Detailed Metric Comparisons
@@ -37,24 +29,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 94.2065 | 463.1311 | 1467.1844 | 3281.7099 |
 | FAISS (FlatL2) | 50.2846 | 56.9107 | 211.3638 | 252.0419 |
 | FAISS (HNSW) | 56.2583 | 55.4668 | 59.1345 | 58.2055 |
-| FAISS (IVF+PQ) | 55.0527 | 58.2489 | 60.4522 | 68.6319 |
 | FAISS (SQ8) | 84.9559 | 84.637 | 84.7929 | 119.7078 |
 | FAISS (SQ4) | 83.223 | 83.6591 | 119.5618 | 179.0093 |
 | TurboVec (3-bit) | 52.6108 | 54.9714 | 66.7271 | 88.3313 |
 | TurboVec (4-bit) | 57.9767 | 63.8213 | 74.0332 | 104.6727 |
 | TurboVec (2-bit) | 58.252 | 61.6879 | 65.2107 | 74.1841 |
 | Qdrant (float32) | 57.0791 | 169.4437 | 342.1769 | 459.8013 |
-| Qdrant (Scalar INT8) | 61.5918 | 168.485 | 360.9811 | 454.8258 |
-| Qdrant (Product x16) | 61.5826 | 157.9302 | 338.8742 | 458.7421 |
 | USearch (HNSW) | 50.3928 | 57.5617 | 58.3566 | 63.7906 |
 | ScaNN (Google) | 58.3302 | 59.2422 | 60.9889 | 57.1001 |
-| Qdrant (Binary 1-bit) | 57.3088 | 168.989 | 318.0008 | 412.9086 |
-| Qdrant (Binary 1.5-bit) | 62.0229 | 321.7111 | 323.4447 | 458.4432 |
-| Qdrant (Binary 2-bit Asym) | 62.5453 | 181.0094 | 348.8732 | 413.0075 |
-| Qdrant (TurboQuant 4-bit) | 58.7262 | 173.0002 | 324.5634 | 471.877 |
-| Qdrant (TurboQuant 2-bit) | 60.0137 | 160.8676 | 351.4905 | 417.2886 |
-| Qdrant (TurboQuant 1.5-bit) | 66.0652 | 174.0498 | 350.1465 | 414.1594 |
-| Qdrant (TurboQuant 1-bit) | 52.3907 | 169.4476 | 359.1083 | 469.9033 |
 
 
 ### Compression vs baseline
@@ -63,24 +45,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 1 | 1 | 1 | 1 |
 | FAISS (FlatL2) | 1 | 1 | 1 | 1 |
 | FAISS (HNSW) | 0.9138 | 0.9138 | 0.9138 | 0.9138 |
-| FAISS (IVF+PQ) | 192 | 192 | 192 | 192 |
 | FAISS (SQ8) | 4 | 4 | 4 | 4 |
 | FAISS (SQ4) | 8 | 8 | 8 | 8 |
 | TurboVec (3-bit) | 10.6667 | 10.6667 | 10.6667 | 10.6667 |
 | TurboVec (4-bit) | 8 | 8 | 8 | 8 |
 | TurboVec (2-bit) | 16 | 16 | 16 | 16 |
 | Qdrant (float32) | 1 | 1 | 1 | 1 |
-| Qdrant (Scalar INT8) | 2.4 | 2.4 | 2.4 | 2.4 |
-| Qdrant (Product x16) | 8.4706 | 8.4706 | 8.4706 | 8.4706 |
 | USearch (HNSW) | 1 | 1 | 1 | 1 |
 | ScaNN (Google) | 1 | 2 | 2 | 2 |
-| Qdrant (Binary 1-bit) | 0.9697 | 0.9697 | 0.9697 | 0.9697 |
-| Qdrant (Binary 1.5-bit) | 0.96 | 0.96 | 0.96 | 0.96 |
-| Qdrant (Binary 2-bit Asym) | 0.9412 | 0.9412 | 0.9412 | 0.9412 |
-| Qdrant (TurboQuant 4-bit) | 0.8889 | 0.8889 | 0.8889 | 0.8889 |
-| Qdrant (TurboQuant 2-bit) | 0.9412 | 0.9412 | 0.9412 | 0.9412 |
-| Qdrant (TurboQuant 1.5-bit) | 0.9552 | 0.9552 | 0.9552 | 0.9552 |
-| Qdrant (TurboQuant 1-bit) | 0.9697 | 0.9697 | 0.9697 | 0.9697 |
 
 
 ### Index time (s)
@@ -89,24 +61,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 4.4849 | 48.636 | 473.9817 | 1214.2571 |
 | FAISS (FlatL2) | 0.0021 | 0.0232 | 0.4526 | 1.1088 |
 | FAISS (HNSW) | 0.0281 | 0.5329 | 19.936 | 68.746 |
-| FAISS (IVF+PQ) | 0.4473 | 6.7111 | 26.1273 | 29.9208 |
 | FAISS (SQ8) | 0.0035 | 0.0235 | 0.2572 | 1.1683 |
 | FAISS (SQ4) | 0.0031 | 0.0252 | 0.2561 | 1.1194 |
 | TurboVec (3-bit) | 5.1285 | 45.9433 | 479.3888 | 1229.9827 |
 | TurboVec (4-bit) | 4.6253 | 50.7784 | 474.8568 | 1208.6666 |
 | TurboVec (2-bit) | 4.5196 | 45.2535 | 479.0582 | 1221.2181 |
 | Qdrant (float32) | 0.2824 | 2.2366 | 22.9052 | 69.9776 |
-| Qdrant (Scalar INT8) | 0.2685 | 2.0902 | 22.2599 | 71.2245 |
-| Qdrant (Product x16) | 0.313 | 2.0955 | 22.32 | 71.5542 |
 | USearch (HNSW) | 0.0649 | 0.6907 | 12.2448 | 41.5628 |
 | ScaNN (Google) | 0.0039 | 1.2534 | 12.0372 | 29.3421 |
-| Qdrant (Binary 1-bit) | 0.2273 | 2.2687 | 22.3558 | 70.9191 |
-| Qdrant (Binary 1.5-bit) | 0.2394 | 2.1234 | 22.2963 | 71.5834 |
-| Qdrant (Binary 2-bit Asym) | 0.2279 | 2.1675 | 22.1708 | 71.0624 |
-| Qdrant (TurboQuant 4-bit) | 0.2303 | 2.094 | 22.0966 | 69.034 |
-| Qdrant (TurboQuant 2-bit) | 0.3283 | 2.0768 | 22.6445 | 71.866 |
-| Qdrant (TurboQuant 1.5-bit) | 0.2337 | 2.2369 | 22.3867 | 70.6232 |
-| Qdrant (TurboQuant 1-bit) | 0.2235 | 2.1708 | 22.1739 | 71.3167 |
 
 
 ### Indexing d/s
@@ -115,24 +77,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 111.4878 | 103.1145 | 105.5039 | 107.3247 |
 | FAISS (FlatL2) | 234035.5934 | 216068.2109 | 133464.4022 | 117594.9165 |
 | FAISS (HNSW) | 18488.7901 | 9391.646 | 2511.1054 | 1896.7145 |
-| FAISS (IVF+PQ) | 1117.7629 | 745.0343 | 1913.7075 | 4355.4671 |
 | FAISS (SQ8) | 141717.9331 | 212525.442 | 194418.98 | 111547.4416 |
 | FAISS (SQ4) | 160312.7766 | 198315.8699 | 195224.7137 | 116415.3206 |
 | TurboVec (3-bit) | 97.4943 | 108.8299 | 104.2995 | 105.9519 |
 | TurboVec (4-bit) | 108.1005 | 98.467 | 105.2949 | 107.8205 |
 | TurboVec (2-bit) | 110.6304 | 110.4888 | 104.3715 | 106.7123 |
 | Qdrant (float32) | 1834.9023 | 2243.6065 | 2185.2509 | 1862.6623 |
-| Qdrant (Scalar INT8) | 1909.6066 | 2392.6369 | 2246.2985 | 1830.0436 |
-| Qdrant (Product x16) | 1597.412 | 2386.1204 | 2240.155 | 1822.4326 |
 | USearch (HNSW) | 7698.2467 | 7238.9184 | 4083.3694 | 3135.4717 |
 | ScaNN (Google) | 126957.3329 | 3989.2808 | 4153.7802 | 4441.3587 |
-| Qdrant (Binary 1-bit) | 2199.9211 | 2203.8914 | 2236.5577 | 1837.5735 |
-| Qdrant (Binary 1.5-bit) | 2088.9628 | 2354.7629 | 2242.5209 | 1820.519 |
-| Qdrant (Binary 2-bit Asym) | 2193.9854 | 2306.7847 | 2255.2181 | 1833.8676 |
-| Qdrant (TurboQuant 4-bit) | 2170.7344 | 2387.7791 | 2262.7867 | 1887.7522 |
-| Qdrant (TurboQuant 2-bit) | 1523.0486 | 2407.5946 | 2208.039 | 1813.3609 |
-| Qdrant (TurboQuant 1.5-bit) | 2139.2608 | 2235.2456 | 2233.4665 | 1845.2731 |
-| Qdrant (TurboQuant 1-bit) | 2236.7092 | 2303.3072 | 2254.9004 | 1827.3268 |
 
 
 ### Kendall τ (rank corr.)
@@ -140,24 +92,14 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 1 | 1 | 1 | 1 |
 | FAISS (HNSW) | 1 | 1 | 1 | 1 |
-| FAISS (IVF+PQ) | 0.0449 | -0.2121 | -0.2429 | -0.1758 |
 | FAISS (SQ8) | 0.9743 | 0.9784 | 0.9813 | 0.9836 |
 | FAISS (SQ4) | 0.7091 | 0.7619 | 0.6482 | 0.7848 |
 | TurboVec (3-bit) | 0.6216 | 0.7047 | 0.7921 | 0.7404 |
 | TurboVec (4-bit) | 0.8007 | 0.8586 | 0.8581 | 0.866 |
 | TurboVec (2-bit) | 0.4873 | 0.5505 | 0.6074 | 0.5952 |
 | Qdrant (float32) | 1 | 1 | 1 | 1 |
-| Qdrant (Scalar INT8) | 1 | 1 | 1 | 1 |
-| Qdrant (Product x16) | 1 | 1 | 1 | 1 |
 | USearch (HNSW) | 0.9886 | 0.9971 | 0.9953 | 1 |
 | ScaNN (Google) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 1-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 2-bit Asym) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 4-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 2-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1-bit) | 1 | 1 | 1 | 1 |
 
 
 ### P95 latency (ms)
@@ -166,24 +108,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 173.07 | 829.0883 | 1660.4696 | 3369.9204 |
 | FAISS (FlatL2) | 97.922 | 103.0414 | 314.7369 | 313.7818 |
 | FAISS (HNSW) | 111.2829 | 106.4748 | 109.2279 | 98.9657 |
-| FAISS (IVF+PQ) | 135.7368 | 110.372 | 112.3346 | 122.7836 |
 | FAISS (SQ8) | 134.1207 | 147.5954 | 118.7047 | 230.5905 |
 | FAISS (SQ4) | 150.2658 | 106.5489 | 183.1065 | 243.7198 |
 | TurboVec (3-bit) | 110.265 | 113.3859 | 107.3636 | 155.7819 |
 | TurboVec (4-bit) | 106.0092 | 143.1419 | 145.4436 | 158.2228 |
 | TurboVec (2-bit) | 127.7006 | 109.7 | 124.2287 | 110.6646 |
 | Qdrant (float32) | 113.1716 | 237.4244 | 413.6975 | 543.0242 |
-| Qdrant (Scalar INT8) | 110.1139 | 179.5768 | 441.2151 | 532.9911 |
-| Qdrant (Product x16) | 116.1424 | 166.7608 | 407.4194 | 525.7408 |
 | USearch (HNSW) | 99.542 | 100.155 | 115.5343 | 109.3991 |
 | ScaNN (Google) | 107.037 | 134.8954 | 108.8978 | 105.0571 |
-| Qdrant (Binary 1-bit) | 116.519 | 196.6242 | 381.3522 | 471.1325 |
-| Qdrant (Binary 1.5-bit) | 105.8025 | 469.8307 | 399.617 | 533.3222 |
-| Qdrant (Binary 2-bit Asym) | 117.6097 | 243.1943 | 425.749 | 493.2088 |
-| Qdrant (TurboQuant 4-bit) | 125.1868 | 240.1976 | 389.2754 | 564.3941 |
-| Qdrant (TurboQuant 2-bit) | 108.7766 | 233.7769 | 418.8339 | 502.0691 |
-| Qdrant (TurboQuant 1.5-bit) | 118.5079 | 237.1765 | 417.6036 | 488.3738 |
-| Qdrant (TurboQuant 1-bit) | 116.2207 | 178.7649 | 423.7263 | 563.5765 |
 
 
 ### Precision@1 (avg)
@@ -192,24 +124,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | FAISS (FlatL2) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | FAISS (HNSW) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
-| FAISS (IVF+PQ) | 0.0526 | 0 | 0.1579 | 0.1053 |
 | FAISS (SQ8) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | FAISS (SQ4) | 0.0526 | 0.0526 | 0.1579 | 0.2632 |
 | TurboVec (3-bit) | 0.1053 | 0.1579 | 0.1579 | 0.2632 |
 | TurboVec (4-bit) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | TurboVec (2-bit) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | Qdrant (float32) | 0.0526 | 0.1316 | 0.2105 | 0.2895 |
-| Qdrant (Scalar INT8) | 0.0526 | 0.1316 | 0.1842 | 0.2895 |
-| Qdrant (Product x16) | 0.0526 | 0.1053 | 0.2105 | 0.2895 |
 | USearch (HNSW) | 0.0526 | 0.1053 | 0.1579 | 0.2632 |
 | ScaNN (Google) | 0.0526 | 0.1053 | 0.1579 | 0.2105 |
-| Qdrant (Binary 1-bit) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (Binary 1.5-bit) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (Binary 2-bit Asym) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (TurboQuant 4-bit) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (TurboQuant 2-bit) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (TurboQuant 1.5-bit) | 0.1053 | 0.1053 | 0.2105 | 0.3158 |
-| Qdrant (TurboQuant 1-bit) | 0.0526 | 0.1053 | 0.2105 | 0.3158 |
 
 
 ### Precision@3 (avg)
@@ -218,24 +140,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0702 | 0.0877 | 0.2105 | 0.1754 |
 | FAISS (FlatL2) | 0.0702 | 0.0877 | 0.2105 | 0.1754 |
 | FAISS (HNSW) | 0.0702 | 0.0877 | 0.2105 | 0.1754 |
-| FAISS (IVF+PQ) | 0.0526 | 0 | 0.1053 | 0.0877 |
 | FAISS (SQ8) | 0.0702 | 0.0877 | 0.2105 | 0.1754 |
 | FAISS (SQ4) | 0.0877 | 0.0877 | 0.2105 | 0.1754 |
 | TurboVec (3-bit) | 0.0877 | 0.1053 | 0.2105 | 0.1754 |
 | TurboVec (4-bit) | 0.0702 | 0.0877 | 0.2105 | 0.1754 |
 | TurboVec (2-bit) | 0.0702 | 0.0702 | 0.193 | 0.193 |
 | Qdrant (float32) | 0.0789 | 0.114 | 0.2281 | 0.1842 |
-| Qdrant (Scalar INT8) | 0.0702 | 0.114 | 0.2281 | 0.1842 |
-| Qdrant (Product x16) | 0.0789 | 0.0877 | 0.2368 | 0.193 |
 | USearch (HNSW) | 0.0702 | 0.0877 | 0.2105 | 0.193 |
 | ScaNN (Google) | 0.0702 | 0.0526 | 0.2105 | 0.1579 |
-| Qdrant (Binary 1-bit) | 0.0702 | 0.0877 | 0.2281 | 0.193 |
-| Qdrant (Binary 1.5-bit) | 0.0702 | 0.0877 | 0.2281 | 0.193 |
-| Qdrant (Binary 2-bit Asym) | 0.0702 | 0.0877 | 0.2632 | 0.193 |
-| Qdrant (TurboQuant 4-bit) | 0.0702 | 0.0877 | 0.2281 | 0.193 |
-| Qdrant (TurboQuant 2-bit) | 0.0702 | 0.0877 | 0.2281 | 0.193 |
-| Qdrant (TurboQuant 1.5-bit) | 0.1228 | 0.0877 | 0.2281 | 0.193 |
-| Qdrant (TurboQuant 1-bit) | 0.0702 | 0.0877 | 0.2281 | 0.193 |
 
 
 ### Precision@5 (avg)
@@ -244,24 +156,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0632 | 0.0842 | 0.2211 | 0.2 |
 | FAISS (FlatL2) | 0.0632 | 0.0842 | 0.2211 | 0.2 |
 | FAISS (HNSW) | 0.0632 | 0.0842 | 0.2211 | 0.2 |
-| FAISS (IVF+PQ) | 0.0526 | 0.0105 | 0.0842 | 0.0737 |
 | FAISS (SQ8) | 0.0632 | 0.0842 | 0.2211 | 0.2 |
 | FAISS (SQ4) | 0.0737 | 0.0842 | 0.1789 | 0.2 |
 | TurboVec (3-bit) | 0.0526 | 0.0737 | 0.2105 | 0.1789 |
 | TurboVec (4-bit) | 0.0632 | 0.0737 | 0.2211 | 0.1895 |
 | TurboVec (2-bit) | 0.0737 | 0.0737 | 0.2 | 0.2 |
 | Qdrant (float32) | 0.0684 | 0.1105 | 0.2368 | 0.2105 |
-| Qdrant (Scalar INT8) | 0.0632 | 0.1105 | 0.2368 | 0.2053 |
-| Qdrant (Product x16) | 0.0737 | 0.0895 | 0.2474 | 0.2105 |
 | USearch (HNSW) | 0.0632 | 0.0842 | 0.2211 | 0.2 |
 | ScaNN (Google) | 0.0632 | 0.0316 | 0.2211 | 0.1895 |
-| Qdrant (Binary 1-bit) | 0.0632 | 0.0842 | 0.2421 | 0.2105 |
-| Qdrant (Binary 1.5-bit) | 0.0632 | 0.0842 | 0.2421 | 0.2105 |
-| Qdrant (Binary 2-bit Asym) | 0.0632 | 0.0842 | 0.2737 | 0.2105 |
-| Qdrant (TurboQuant 4-bit) | 0.0632 | 0.0842 | 0.2421 | 0.2105 |
-| Qdrant (TurboQuant 2-bit) | 0.0632 | 0.0842 | 0.2421 | 0.2105 |
-| Qdrant (TurboQuant 1.5-bit) | 0.1158 | 0.0842 | 0.2421 | 0.2105 |
-| Qdrant (TurboQuant 1-bit) | 0.0632 | 0.0842 | 0.2421 | 0.2105 |
 
 
 ### RSS delta (MB) [*]
@@ -270,24 +172,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 18.3164 | 74.4316 | 766.6953 | 2118.7949 |
 | FAISS (FlatL2) | 0.4004 | 4.748 | 101.1523 | 268.1621 |
 | FAISS (HNSW) | 1.1582 | 6.0859 | 108.2754 | 300.1445 |
-| FAISS (IVF+PQ) | 1.7539 | 9.418 | 44.4844 | 82.3711 |
 | FAISS (SQ8) | 0.9727 | 2.332 | 46.3164 | 123.7031 |
 | FAISS (SQ4) | 0.9727 | 1.25 | 27.0273 | 100.1016 |
 | TurboVec (3-bit) | 3.6758 | 5.4297 | 116.4688 | 138.457 |
 | TurboVec (4-bit) | 4.7188 | 6.375 | 61.9531 | 190.2852 |
 | TurboVec (2-bit) | 10.6758 | 15.9414 | 45.8555 | 152.1016 |
 | Qdrant (float32) | 3.2109 | 55.7559 | 600.9531 | 1534.7285 |
-| Qdrant (Scalar INT8) | 3.0039 | 53.7871 | 613.8242 | 1514.3867 |
-| Qdrant (Product x16) | 2.9531 | 54.3008 | 607.6328 | 1476.0996 |
 | USearch (HNSW) | 9.7852 | 69.5547 | 679.0781 | 1872.4375 |
 | ScaNN (Google) | 1.8516 | 26.8555 | 73.2812 | 204.3125 |
-| Qdrant (Binary 1-bit) | 1.5312 | 27.5742 | 421.4414 | 1014.3398 |
-| Qdrant (Binary 1.5-bit) | 1.6367 | 28.7148 | 420.5977 | 883.2109 |
-| Qdrant (Binary 2-bit Asym) | 1.6562 | 27.5117 | 360.3008 | 965.1445 |
-| Qdrant (TurboQuant 4-bit) | 1.6406 | 27.543 | 421.1797 | 835.6016 |
-| Qdrant (TurboQuant 2-bit) | 0.3984 | 35.4688 | 388.8711 | 965.0898 |
-| Qdrant (TurboQuant 1.5-bit) | 1.625 | 36.4141 | 329.4492 | 990.3203 |
-| Qdrant (TurboQuant 1-bit) | 1.5625 | 31.4492 | 387.4492 | 941.7969 |
 
 
 ### Recall@1 (avg)
@@ -296,24 +188,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
 | FAISS (FlatL2) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
 | FAISS (HNSW) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
-| FAISS (IVF+PQ) | 0.0175 | 0 | 0.0763 | 0.0395 |
 | FAISS (SQ8) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
 | FAISS (SQ4) | 0.0132 | 0.0132 | 0.0842 | 0.1041 |
 | TurboVec (3-bit) | 0.0263 | 0.0482 | 0.0842 | 0.1111 |
 | TurboVec (4-bit) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
 | TurboVec (2-bit) | 0.0132 | 0.0307 | 0.0592 | 0.1111 |
 | Qdrant (float32) | 0.0132 | 0.0333 | 0.1061 | 0.1392 |
-| Qdrant (Scalar INT8) | 0.0132 | 0.0333 | 0.093 | 0.1392 |
-| Qdrant (Product x16) | 0.0132 | 0.0307 | 0.0982 | 0.1392 |
 | USearch (HNSW) | 0.0132 | 0.0307 | 0.0842 | 0.1129 |
 | ScaNN (Google) | 0.0132 | 0.0789 | 0.0585 | 0.0602 |
-| Qdrant (Binary 1-bit) | 0.0132 | 0.0307 | 0.1018 | 0.1655 |
-| Qdrant (Binary 1.5-bit) | 0.0132 | 0.0307 | 0.1018 | 0.1655 |
-| Qdrant (Binary 2-bit Asym) | 0.0132 | 0.0307 | 0.0895 | 0.1655 |
-| Qdrant (TurboQuant 4-bit) | 0.0132 | 0.0307 | 0.1018 | 0.1655 |
-| Qdrant (TurboQuant 2-bit) | 0.0132 | 0.0307 | 0.1018 | 0.1655 |
-| Qdrant (TurboQuant 1.5-bit) | 0.0184 | 0.0307 | 0.1018 | 0.1655 |
-| Qdrant (TurboQuant 1-bit) | 0.0132 | 0.0307 | 0.1018 | 0.1655 |
 
 
 ### Recall@3 (avg)
@@ -322,24 +204,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0526 | 0.0746 | 0.1675 | 0.1526 |
 | FAISS (FlatL2) | 0.0526 | 0.0746 | 0.1675 | 0.1526 |
 | FAISS (HNSW) | 0.0526 | 0.0746 | 0.1675 | 0.1526 |
-| FAISS (IVF+PQ) | 0.0439 | 0 | 0.1526 | 0.1579 |
 | FAISS (SQ8) | 0.0526 | 0.0746 | 0.1675 | 0.1526 |
 | FAISS (SQ4) | 0.0658 | 0.0746 | 0.1675 | 0.1414 |
 | TurboVec (3-bit) | 0.0658 | 0.0921 | 0.1719 | 0.1491 |
 | TurboVec (4-bit) | 0.0526 | 0.0746 | 0.1675 | 0.1526 |
 | TurboVec (2-bit) | 0.0526 | 0.0614 | 0.1478 | 0.1798 |
 | Qdrant (float32) | 0.0789 | 0.0825 | 0.1895 | 0.1789 |
-| Qdrant (Scalar INT8) | 0.0526 | 0.0825 | 0.1851 | 0.1789 |
-| Qdrant (Product x16) | 0.0614 | 0.0746 | 0.1868 | 0.1921 |
 | USearch (HNSW) | 0.0526 | 0.0746 | 0.1675 | 0.2053 |
 | ScaNN (Google) | 0.0526 | 0.1053 | 0.1482 | 0.1 |
-| Qdrant (Binary 1-bit) | 0.0526 | 0.0746 | 0.1851 | 0.2053 |
-| Qdrant (Binary 1.5-bit) | 0.0526 | 0.0746 | 0.1851 | 0.2053 |
-| Qdrant (Binary 2-bit Asym) | 0.0526 | 0.0746 | 0.1833 | 0.2053 |
-| Qdrant (TurboQuant 4-bit) | 0.0526 | 0.0746 | 0.1851 | 0.2053 |
-| Qdrant (TurboQuant 2-bit) | 0.0526 | 0.0746 | 0.1851 | 0.2053 |
-| Qdrant (TurboQuant 1.5-bit) | 0.0684 | 0.0746 | 0.1851 | 0.2053 |
-| Qdrant (TurboQuant 1-bit) | 0.0526 | 0.0746 | 0.1851 | 0.2053 |
 
 
 ### Recall@5 (avg)
@@ -348,24 +220,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.0789 | 0.1228 | 0.2667 | 0.3327 |
 | FAISS (FlatL2) | 0.0789 | 0.1228 | 0.2667 | 0.3327 |
 | FAISS (HNSW) | 0.0789 | 0.1228 | 0.2667 | 0.3327 |
-| FAISS (IVF+PQ) | 0.0746 | 0.0526 | 0.1763 | 0.2237 |
 | FAISS (SQ8) | 0.0789 | 0.1228 | 0.2667 | 0.3327 |
 | FAISS (SQ4) | 0.0921 | 0.1228 | 0.2132 | 0.2926 |
 | TurboVec (3-bit) | 0.0658 | 0.1096 | 0.2579 | 0.2749 |
 | TurboVec (4-bit) | 0.0789 | 0.1053 | 0.2579 | 0.3064 |
 | TurboVec (2-bit) | 0.0921 | 0.1053 | 0.2338 | 0.3099 |
 | Qdrant (float32) | 0.1053 | 0.136 | 0.2974 | 0.3722 |
-| Qdrant (Scalar INT8) | 0.0789 | 0.136 | 0.293 | 0.3591 |
-| Qdrant (Product x16) | 0.0965 | 0.136 | 0.3 | 0.3722 |
 | USearch (HNSW) | 0.0789 | 0.1228 | 0.2667 | 0.3327 |
 | ScaNN (Google) | 0.0789 | 0.1053 | 0.2538 | 0.2801 |
-| Qdrant (Binary 1-bit) | 0.0789 | 0.1228 | 0.3018 | 0.3854 |
-| Qdrant (Binary 1.5-bit) | 0.0789 | 0.1228 | 0.3018 | 0.3854 |
-| Qdrant (Binary 2-bit Asym) | 0.0789 | 0.1228 | 0.293 | 0.3854 |
-| Qdrant (TurboQuant 4-bit) | 0.0789 | 0.1228 | 0.3018 | 0.3854 |
-| Qdrant (TurboQuant 2-bit) | 0.0789 | 0.1228 | 0.3018 | 0.3854 |
-| Qdrant (TurboQuant 1.5-bit) | 0.1053 | 0.1228 | 0.3018 | 0.3854 |
-| Qdrant (TurboQuant 1-bit) | 0.0789 | 0.1228 | 0.3018 | 0.3854 |
 
 
 ### Sim: overall %
@@ -373,24 +235,14 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 89.9992 | 89.9985 | 89.9953 | 89.9959 |
 | FAISS (HNSW) | 87.9102 | 89.6146 | 86.8421 | 84.1655 |
-| FAISS (IVF+PQ) | 24.1058 | 20.6399 | 23.9379 | 23.0928 |
 | FAISS (SQ8) | 75.8599 | 77.0839 | 78.2855 | 78.0064 |
 | FAISS (SQ4) | 58.2914 | 61.278 | 63.063 | 64.6958 |
 | TurboVec (3-bit) | 72.6828 | 79.5461 | 82.2099 | 83.9659 |
 | TurboVec (4-bit) | 82.1997 | 86.3823 | 87.3784 | 88.5476 |
 | TurboVec (2-bit) | 62.6212 | 71.9333 | 75.4595 | 75.0028 |
 | Qdrant (float32) | 100 | 100 | 100 | 100 |
-| Qdrant (Scalar INT8) | 100 | 100 | 100 | 100 |
-| Qdrant (Product x16) | 100 | 100 | 100 | 100 |
 | USearch (HNSW) | 76.3627 | 70.8187 | 76.504 | 75.0951 |
 | ScaNN (Google) | 100 | 73.7726 | 96.0243 | 94.9033 |
-| Qdrant (Binary 1-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (Binary 1.5-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (Binary 2-bit Asym) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 4-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 2-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 1.5-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 1-bit) | 100 | 100 | 100 | 100 |
 
 
 ### Sim: result Jaccard %
@@ -398,24 +250,14 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 100 | 100 | 100 | 100 |
 | FAISS (HNSW) | 98.5646 | 99.0431 | 100 | 99.0431 |
-| FAISS (IVF+PQ) | 20.692 | 11.7154 | 13.3457 | 11.0944 |
 | FAISS (SQ8) | 99.0431 | 99.0431 | 99.0431 | 98.0861 |
 | FAISS (SQ4) | 80.5282 | 81.9409 | 84.5295 | 80.4687 |
 | TurboVec (3-bit) | 74.8767 | 83.0941 | 79.3522 | 79.6081 |
 | TurboVec (4-bit) | 82.8978 | 85.9649 | 85.327 | 88.8357 |
 | TurboVec (2-bit) | 58.7158 | 64.7878 | 64.8877 | 68.3965 |
 | Qdrant (float32) | 100 | 100 | 100 | 100 |
-| Qdrant (Scalar INT8) | 100 | 100 | 100 | 100 |
-| Qdrant (Product x16) | 100 | 100 | 100 | 100 |
 | USearch (HNSW) | 93.6204 | 86.552 | 94.2812 | 92.9457 |
 | ScaNN (Google) | 100 | 62.965 | 93.3014 | 95.3748 |
-| Qdrant (Binary 1-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (Binary 1.5-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (Binary 2-bit Asym) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 4-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 2-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 1.5-bit) | 100 | 100 | 100 | 100 |
-| Qdrant (TurboQuant 1-bit) | 100 | 100 | 100 | 100 |
 
 
 ### Theoretical MB [*]
@@ -424,24 +266,14 @@ Each table below displays performance under a specific metric across different s
 | Baseline (InMem) | 0.768 | 7.68 | 76.8 | 200.17 |
 | FAISS (FlatL2) | 0.768 | 7.68 | 76.8 | 200.17 |
 | FAISS (HNSW) | 0.848 | 8.48 | 84.8 | 221.021 |
-| FAISS (IVF+PQ) | 0.004 | 0.04 | 0.4 | 1.0426 |
 | FAISS (SQ8) | 0.192 | 1.92 | 19.2 | 50.0425 |
 | FAISS (SQ4) | 0.096 | 0.96 | 9.6 | 25.0212 |
 | TurboVec (3-bit) | 0.072 | 0.72 | 7.2 | 18.7659 |
 | TurboVec (4-bit) | 0.096 | 0.96 | 9.6 | 25.0212 |
 | TurboVec (2-bit) | 0.048 | 0.48 | 4.8 | 12.5106 |
 | Qdrant (float32) | 0.768 | 7.68 | 76.8 | 200.17 |
-| Qdrant (Scalar INT8) | 0.576 | 5.76 | 57.6 | 150.1275 |
-| Qdrant (Product x16) | 0.432 | 4.32 | 43.2 | 112.5956 |
 | USearch (HNSW) | 0.768 | 7.68 | 76.8 | 200.17 |
 | ScaNN (Google) | 0.768 | 3.84 | 38.4 | 100.085 |
-| Qdrant (Binary 1-bit) | 0.792 | 7.92 | 79.2 | 206.4253 |
-| Qdrant (Binary 1.5-bit) | 0.8 | 8 | 80 | 208.5104 |
-| Qdrant (Binary 2-bit Asym) | 0.816 | 8.16 | 81.6 | 212.6806 |
-| Qdrant (TurboQuant 4-bit) | 0.864 | 8.64 | 86.4 | 225.1912 |
-| Qdrant (TurboQuant 2-bit) | 0.816 | 8.16 | 81.6 | 212.6806 |
-| Qdrant (TurboQuant 1.5-bit) | 0.804 | 8.04 | 80.4 | 209.553 |
-| Qdrant (TurboQuant 1-bit) | 0.792 | 7.92 | 79.2 | 206.4253 |
 
 
 ### Top-1 match rate
@@ -449,24 +281,14 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 1 | 1 | 1 | 1 |
 | FAISS (HNSW) | 0.9737 | 1 | 1 | 1 |
-| FAISS (IVF+PQ) | 0.1579 | 0.0526 | 0.1053 | 0.1053 |
 | FAISS (SQ8) | 0.8947 | 0.9474 | 1 | 1 |
 | FAISS (SQ4) | 0.7368 | 0.8421 | 0.9474 | 1 |
 | TurboVec (3-bit) | 0.6842 | 0.7895 | 0.8947 | 1 |
 | TurboVec (4-bit) | 0.8421 | 0.8947 | 1 | 0.9474 |
 | TurboVec (2-bit) | 0.4737 | 0.7895 | 0.8947 | 0.7895 |
 | Qdrant (float32) | 1 | 1 | 1 | 1 |
-| Qdrant (Scalar INT8) | 1 | 1 | 1 | 1 |
-| Qdrant (Product x16) | 1 | 1 | 1 | 1 |
 | USearch (HNSW) | 1 | 0.9474 | 1 | 0.9474 |
 | ScaNN (Google) | 1 | 0.7368 | 1 | 0.9474 |
-| Qdrant (Binary 1-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 2-bit Asym) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 4-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 2-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1-bit) | 1 | 1 | 1 | 1 |
 
 
 ### Top-3 overlap rate
@@ -474,24 +296,14 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 1 | 1 | 1 | 1 |
 | FAISS (HNSW) | 0.9912 | 1 | 1 | 0.9825 |
-| FAISS (IVF+PQ) | 0.2281 | 0.193 | 0.193 | 0.193 |
 | FAISS (SQ8) | 0.9474 | 0.9649 | 0.9825 | 1 |
 | FAISS (SQ4) | 0.7719 | 0.8772 | 0.7544 | 0.8421 |
 | TurboVec (3-bit) | 0.7368 | 0.8947 | 0.8421 | 0.8246 |
 | TurboVec (4-bit) | 0.8596 | 0.9298 | 0.807 | 0.8772 |
 | TurboVec (2-bit) | 0.614 | 0.6667 | 0.7368 | 0.7368 |
 | Qdrant (float32) | 1 | 1 | 1 | 1 |
-| Qdrant (Scalar INT8) | 1 | 1 | 1 | 1 |
-| Qdrant (Product x16) | 1 | 1 | 1 | 1 |
 | USearch (HNSW) | 0.9649 | 0.9474 | 0.9825 | 0.9649 |
 | ScaNN (Google) | 1 | 0.7368 | 0.9825 | 0.9474 |
-| Qdrant (Binary 1-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 2-bit Asym) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 4-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 2-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1-bit) | 1 | 1 | 1 | 1 |
 
 
 ### Top-5 overlap rate
@@ -499,22 +311,11 @@ Each table below displays performance under a specific metric across different s
 | :--- | ---: | ---: | ---: | ---: |
 | FAISS (FlatL2) | 1 | 1 | 1 | 1 |
 | FAISS (HNSW) | 0.9895 | 1 | 1 | 0.9895 |
-| FAISS (IVF+PQ) | 0.2842 | 0.2 | 0.2211 | 0.2 |
 | FAISS (SQ8) | 0.9895 | 1 | 1 | 1 |
 | FAISS (SQ4) | 0.8105 | 0.8737 | 0.8211 | 0.8316 |
 | TurboVec (3-bit) | 0.7474 | 0.8526 | 0.8947 | 0.8737 |
 | TurboVec (4-bit) | 0.8737 | 0.9053 | 0.9474 | 0.9368 |
 | TurboVec (2-bit) | 0.6737 | 0.7684 | 0.7789 | 0.7895 |
 | Qdrant (float32) | 1 | 1 | 1 | 1 |
-| Qdrant (Scalar INT8) | 1 | 1 | 1 | 1 |
-| Qdrant (Product x16) | 1 | 1 | 1 | 1 |
 | USearch (HNSW) | 1 | 0.9158 | 0.9789 | 0.9789 |
 | ScaNN (Google) | 1 | 0.7474 | 0.9895 | 0.9684 |
-| Qdrant (Binary 1-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (Binary 2-bit Asym) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 4-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 2-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1.5-bit) | 1 | 1 | 1 | 1 |
-| Qdrant (TurboQuant 1-bit) | 1 | 1 | 1 | 1 |
-

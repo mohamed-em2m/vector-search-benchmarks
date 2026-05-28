@@ -1,0 +1,795 @@
+{
+  "sample_sizes": [
+    10
+  ],
+  "stores": [
+    "qdrant__qdrant_float32",
+    "qdrant__qdrant_scalar_int8",
+    "qdrant__qdrant_scalar_uint8",
+    "qdrant__qdrant_product_x16",
+    "qdrant__qdrant_binary_1_bit",
+    "qdrant__qdrant_binary_1.5_bit",
+    "qdrant__qdrant_binary_2_bit_asym",
+    "qdrant__qdrant_turboquant_4_bit",
+    "qdrant__qdrant_turboquant_2_bit",
+    "qdrant__qdrant_turboquant_1.5_bit",
+    "qdrant__qdrant_turboquant_1_bit"
+  ],
+  "store_display": {
+    "qdrant__qdrant_float32": "Qdrant (float32)",
+    "qdrant__qdrant_scalar_int8": "Qdrant (Scalar INT8)",
+    "qdrant__qdrant_scalar_uint8": "Qdrant (Scalar UINT8)",
+    "qdrant__qdrant_product_x16": "Qdrant (Product x16)",
+    "qdrant__qdrant_binary_1_bit": "Qdrant (Binary 1-bit)",
+    "qdrant__qdrant_binary_1.5_bit": "Qdrant (Binary 1.5-bit)",
+    "qdrant__qdrant_binary_2_bit_asym": "Qdrant (Binary 2-bit Asym)",
+    "qdrant__qdrant_turboquant_4_bit": "Qdrant (TurboQuant 4-bit)",
+    "qdrant__qdrant_turboquant_2_bit": "Qdrant (TurboQuant 2-bit)",
+    "qdrant__qdrant_turboquant_1.5_bit": "Qdrant (TurboQuant 1.5-bit)",
+    "qdrant__qdrant_turboquant_1_bit": "Qdrant (TurboQuant 1-bit)"
+  },
+  "win_counts": {
+    "qdrant__qdrant_float32": {
+      "speed": 1,
+      "quality": 6,
+      "memory": 0,
+      "agreement": 0,
+      "total": 8,
+      "other": 1
+    },
+    "qdrant__qdrant_scalar_int8": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_scalar_uint8": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_product_x16": {
+      "speed": 2,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 2
+    },
+    "qdrant__qdrant_binary_1_bit": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_binary_1.5_bit": {
+      "speed": 1,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 1
+    },
+    "qdrant__qdrant_binary_2_bit_asym": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_turboquant_4_bit": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_turboquant_2_bit": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    },
+    "qdrant__qdrant_turboquant_1.5_bit": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 1,
+      "agreement": 0,
+      "total": 1
+    },
+    "qdrant__qdrant_turboquant_1_bit": {
+      "speed": 0,
+      "quality": 0,
+      "memory": 0,
+      "agreement": 0,
+      "total": 0
+    }
+  },
+  "per_store_per_metric": {
+    "qdrant__qdrant_float32": {
+      "Avg latency (ms)": {
+        "10": 12.90513789473679
+      },
+      "P95 latency (ms)": {
+        "10": 16.275839999798336
+      },
+      "Index time (s)": {
+        "10": 0.04244109999945067
+      },
+      "Indexing d/s": {
+        "10": 235.62066016501535
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.9296875
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01536
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.005263157894736842
+      },
+      "Recall@3 (avg)": {
+        "10": 0.015789473684210527
+      },
+      "Recall@5 (avg)": {
+        "10": 0.02631578947368421
+      },
+      "Precision@1 (avg)": {
+        "10": 0.05263157894736842
+      },
+      "Precision@3 (avg)": {
+        "10": 0.05263157894736842
+      },
+      "Precision@5 (avg)": {
+        "10": 0.05263157894736842
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_scalar_int8": {
+      "Avg latency (ms)": {
+        "10": 14.43929263161025
+      },
+      "P95 latency (ms)": {
+        "10": 21.509279999645514
+      },
+      "Index time (s)": {
+        "10": 0.04843499999969936
+      },
+      "Indexing d/s": {
+        "10": 206.46226902161808
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.8359375
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.0192
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_scalar_uint8": {
+      "Avg latency (ms)": {
+        "10": 17.51091263156827
+      },
+      "P95 latency (ms)": {
+        "10": 21.980750000147957
+      },
+      "Index time (s)": {
+        "10": 0.03748309999991761
+      },
+      "Indexing d/s": {
+        "10": 266.7868986295685
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.8515625
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.0192
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_product_x16": {
+      "Avg latency (ms)": {
+        "10": 15.200663157970427
+      },
+      "P95 latency (ms)": {
+        "10": 18.082460000277933
+      },
+      "Index time (s)": {
+        "10": 0.02485129999968194
+      },
+      "Indexing d/s": {
+        "10": 402.3934361634194
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.8359375
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01632
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_binary_1_bit": {
+      "Avg latency (ms)": {
+        "10": 14.294985263165328
+      },
+      "P95 latency (ms)": {
+        "10": 17.365159999553722
+      },
+      "Index time (s)": {
+        "10": 0.05127080000056594
+      },
+      "Indexing d/s": {
+        "10": 195.04279238649713
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.828125
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01584
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_binary_1.5_bit": {
+      "Avg latency (ms)": {
+        "10": 13.490051578953985
+      },
+      "P95 latency (ms)": {
+        "10": 15.749989999494572
+      },
+      "Index time (s)": {
+        "10": 0.038430800000242016
+      },
+      "Indexing d/s": {
+        "10": 260.20795819855493
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.86328125
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.016
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_binary_2_bit_asym": {
+      "Avg latency (ms)": {
+        "10": 13.487897894801312
+      },
+      "P95 latency (ms)": {
+        "10": 16.205320000244683
+      },
+      "Index time (s)": {
+        "10": 0.059934099999736645
+      },
+      "Indexing d/s": {
+        "10": 166.84992350004322
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.796875
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01632
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_turboquant_4_bit": {
+      "Avg latency (ms)": {
+        "10": 13.86612526319751
+      },
+      "P95 latency (ms)": {
+        "10": 16.61636999979237
+      },
+      "Index time (s)": {
+        "10": 0.0676181999997425
+      },
+      "Indexing d/s": {
+        "10": 147.88917776631263
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.91015625
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01728
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_turboquant_2_bit": {
+      "Avg latency (ms)": {
+        "10": 13.455150526303777
+      },
+      "P95 latency (ms)": {
+        "10": 15.943179999976564
+      },
+      "Index time (s)": {
+        "10": 0.058281800000258954
+      },
+      "Indexing d/s": {
+        "10": 171.58015023481718
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.76953125
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01632
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_turboquant_1.5_bit": {
+      "Avg latency (ms)": {
+        "10": 14.351388421068565
+      },
+      "P95 latency (ms)": {
+        "10": 17.22769000016342
+      },
+      "Index time (s)": {
+        "10": 0.04976689999966766
+      },
+      "Indexing d/s": {
+        "10": 200.93676721006895
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.63671875
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01608
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    },
+    "qdrant__qdrant_turboquant_1_bit": {
+      "Avg latency (ms)": {
+        "10": 13.677823157836668
+      },
+      "P95 latency (ms)": {
+        "10": 16.137429999980668
+      },
+      "Index time (s)": {
+        "10": 0.07693000000017491
+      },
+      "Indexing d/s": {
+        "10": 129.9883010526097
+      },
+      "RSS delta (MB) [*]": {
+        "10": 0.76953125
+      },
+      "Memray Peak (MB)": {
+        "10": null
+      },
+      "Theoretical MB [*]": {
+        "10": 0.01584
+      },
+      "Compression vs baseline": {
+        "10": null
+      },
+      "Recall@1 (avg)": {
+        "10": 0.0
+      },
+      "Recall@3 (avg)": {
+        "10": 0.0
+      },
+      "Recall@5 (avg)": {
+        "10": 0.0
+      },
+      "Precision@1 (avg)": {
+        "10": 0.0
+      },
+      "Precision@3 (avg)": {
+        "10": 0.0
+      },
+      "Precision@5 (avg)": {
+        "10": 0.0
+      },
+      "Top-1 match rate": {
+        "10": null
+      },
+      "Top-3 overlap rate": {
+        "10": null
+      },
+      "Top-5 overlap rate": {
+        "10": null
+      },
+      "Kendall \u03c4 (rank corr.)": {
+        "10": null
+      },
+      "Sim: result Jaccard %": {
+        "10": null
+      },
+      "Sim: overall %": {
+        "10": null
+      }
+    }
+  }
+}
