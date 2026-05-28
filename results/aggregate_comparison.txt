@@ -12,11 +12,11 @@
   ┌─ Baseline (InMem) ────────────────────────────────────────────────────────────┐
   │ Metric                                         1,000
 --------------------------------------------------------
-  │ Avg latency (ms)                             43.2250  best@1,000
-  │ P95 latency (ms)                             50.4232  best@1,000
-  │ Index time (s)                                1.7557  best@1,000
-  │ Indexing d/s                                569.5851  best@1,000
-  │ RSS delta (MB) [*]                            0.0000  best@1,000
+  │ Avg latency (ms)                             48.5751  best@1,000
+  │ P95 latency (ms)                             56.0066  best@1,000
+  │ Index time (s)                                1.9500  best@1,000
+  │ Indexing d/s                                512.8158  best@1,000
+  │ RSS delta (MB) [*]                           24.6836  best@1,000
   │ Memray Peak (MB)                               —    
   │ Theoretical MB [*]                            1.5360  best@1,000
   │ Compression vs baseline                       1.0000  best@1,000
@@ -37,11 +37,11 @@
   ┌─ USearch (Cosine) ────────────────────────────────────────────────────────────┐
   │ Metric                                         1,000
 --------------------------------------------------------
-  │ Avg latency (ms)                             15.8971  best@1,000
-  │ P95 latency (ms)                             21.0220  best@1,000
-  │ Index time (s)                                0.2288  best@1,000
-  │ Indexing d/s                               4370.0296  best@1,000
-  │ RSS delta (MB) [*]                            0.0000  best@1,000
+  │ Avg latency (ms)                             14.5780  best@1,000
+  │ P95 latency (ms)                             18.0289  best@1,000
+  │ Index time (s)                                0.2817  best@1,000
+  │ Indexing d/s                               3549.7044  best@1,000
+  │ RSS delta (MB) [*]                           11.4922  best@1,000
   │ Memray Peak (MB)                               —    
   │ Theoretical MB [*]                            1.5360  best@1,000
   │ Compression vs baseline                       1.0000  best@1,000
@@ -51,12 +51,12 @@
   │ Precision@1 (avg)                             0.0000  best@1,000
   │ Precision@3 (avg)                             0.0000  best@1,000
   │ Precision@5 (avg)                             0.0000  best@1,000
-  │ Top-1 match rate                              0.5263  best@1,000
-  │ Top-3 overlap rate                            0.1754  best@1,000
-  │ Top-5 overlap rate                            0.1053  best@1,000
+  │ Top-1 match rate                              0.4737  best@1,000
+  │ Top-3 overlap rate                            0.1579  best@1,000
+  │ Top-5 overlap rate                            0.0947  best@1,000
   │ Kendall τ (rank corr.)                         —    
-  │ Sim: result Jaccard %                        52.6316  best@1,000
-  │ Sim: overall %                               55.6659  best@1,000
+  │ Sim: result Jaccard %                        47.3684  best@1,000
+  │ Sim: overall %                               50.7807  best@1,000
   └──────────────────────────────────────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -66,31 +66,31 @@
   ┌─ Avg latency (ms)  (prefer lower) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000         43.2250         15.8971  USearch (Cosine)
+  │      1,000         48.5751         14.5780  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ P95 latency (ms)  (prefer lower) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000         50.4232         21.0220  USearch (Cosine)
+  │      1,000         56.0066         18.0289  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Index time (s)  (prefer lower) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000          1.7557          0.2288  USearch (Cosine)
+  │      1,000          1.9500          0.2817  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Indexing d/s  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000        569.5851       4370.0296  USearch (Cosine)
+  │      1,000        512.8158       3549.7044  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ RSS delta (MB) [*]  (prefer lower) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000          0.0000          0.0000  Baseline (InMem)
+  │      1,000         24.6836         11.4922  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Memray Peak (MB)  (prefer lower) ─────────────────────────────────────────────┐
@@ -150,19 +150,19 @@
   ┌─ Top-1 match rate  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000           —              0.5263  USearch (Cosine)
+  │      1,000           —              0.4737  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Top-3 overlap rate  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000           —              0.1754  USearch (Cosine)
+  │      1,000           —              0.1579  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Top-5 overlap rate  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000           —              0.1053  USearch (Cosine)
+  │      1,000           —              0.0947  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Kendall τ (rank corr.)  (prefer higher) ─────────────────────────────────────────────┐
@@ -174,13 +174,13 @@
   ┌─ Sim: result Jaccard %  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000           —             52.6316  USearch (Cosine)
+  │      1,000           —             47.3684  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
   ┌─ Sim: overall %  (prefer higher) ─────────────────────────────────────────────┐
   │    Samples  Baseline (InMem)  USearch (Cosine)            Winner
 ------------------------------------------------------------
-  │      1,000           —             55.6659  USearch (Cosine)
+  │      1,000           —             50.7807  USearch (Cosine)
   └────────────────────────────────────────────────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -189,8 +189,8 @@
 
   Store                   Total  Speed  Quality   Memory  Agreement
 -----------------------------------------------------------------
-  Baseline (InMem)            9      0        6        1          0
-  USearch (Cosine)            9      4        0        0          5
+  Baseline (InMem)            8      0        6        0          0
+  USearch (Cosine)           10      4        0        1          5
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
   D · SCALE EFFECTS  (how each store's avg latency changes with N)
@@ -198,6 +198,6 @@
 
   Store                       1,000  trend
 --------------------------------------------
-  Baseline (InMem)          43.2250
-  USearch (Cosine)          15.8971
+  Baseline (InMem)          48.5751
+  USearch (Cosine)          14.5780
 ════════════════════════════════════════════════════════════════════════════════════════════════════

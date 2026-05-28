@@ -119,6 +119,13 @@ def rss_mb() -> float:
 
             GetProcessMemoryInfo = ctypes.windll.psapi.GetProcessMemoryInfo
             GetCurrentProcess = ctypes.windll.kernel32.GetCurrentProcess
+            GetCurrentProcess.restype = wintypes.HANDLE
+            GetProcessMemoryInfo.restype = wintypes.BOOL
+            GetProcessMemoryInfo.argtypes = [
+                wintypes.HANDLE,
+                ctypes.POINTER(PROCESS_MEMORY_COUNTERS),
+                wintypes.DWORD,
+            ]
 
             process = GetCurrentProcess()
             counters = PROCESS_MEMORY_COUNTERS()
