@@ -396,7 +396,7 @@
             </div>
             <button class="autoplay-btn" id="autoplayBtn">
                 <span class="play-icon">▶</span>
-                <span class="btn-text">Auto-Cycle (10s)</span>
+                <span class="btn-text">Auto-Cycle (4s)</span>
             </button>
         </div>
     </section>
@@ -836,14 +836,14 @@
                 autoplayInterval = null;
                 autoplayBtn.classList.remove('playing');
                 icon.textContent = '▶';
-                text.textContent = 'Auto-Cycle (10s)';
+                text.textContent = 'Auto-Cycle (4s)';
             } else {
                 autoplayBtn.classList.add('playing');
                 icon.textContent = '⏸';
                 text.textContent = 'Pause Cycle';
                 autoplayInterval = setInterval(() => {
                     setActiveScale((activeScaleIndex + 1) % 5);
-                }, 3000); 
+                }, 4000); 
             }
         }
 
